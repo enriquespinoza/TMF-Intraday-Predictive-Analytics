@@ -1,0 +1,879 @@
+# TMF Intraday Predictive Analytics — Hypothesis Framework
+
+## 1. Purpose
+
+This document defines the statistical hypotheses that will guide the TMF Intraday Predictive Analytics project before exploratory modeling begins.
+
+The objective is to test whether information available at time `t` contains statistically significant and out-of-sample predictive information about subsequent returns of the Direxion Daily 20+ Year Treasury Bull 3X Shares (TMF).
+
+The project focuses on four forecast horizons:
+
+- 15 minutes
+- 30 minutes
+- 60 minutes
+- 120 minutes
+
+The primary research horizon is **60 minutes**.
+
+The hypotheses documented here are established before examining model results to reduce the risk of selecting hypotheses after observing the data.
+
+---
+
+# 2. Primary Research Question
+
+> Do Treasury-rate movements, Treasury bond-market behavior, macroeconomic information, cross-asset market movements, and TMF-specific market variables contain incremental predictive information about future TMF returns?
+
+The primary dependent variable is:
+
+\[
+R_{TMF,t+h}
+\]
+
+where:
+
+- `t` = prediction timestamp
+- `h` = forecast horizon
+- `R` = forward TMF return
+
+Forward returns will initially be calculated as:
+
+\[
+R_{TMF,t+h}
+=
+\frac{P_{t+h}}{P_t}-1
+\]
+
+The project may additionally evaluate log returns where statistically appropriate.
+
+---
+
+# 3. Primary Statistical Hypothesis
+
+## Null Hypothesis
+
+\[
+H_0:
+\beta_1 =
+\beta_2 =
+\cdots =
+\beta_k = 0
+\]
+
+After controlling for TMF's own recent market behavior, the candidate explanatory variables provide no incremental predictive information about future TMF returns.
+
+## Alternative Hypothesis
+
+\[
+H_A:
+\exists \beta_i \neq 0
+\]
+
+At least one explanatory variable provides statistically significant incremental information about future TMF returns.
+
+---
+
+# 4. Forecast Horizons
+
+The hypotheses will be tested separately across:
+
+| Target | Horizon | Role |
+|---|---:|---|
+| `TMF_Fwd_15m` | 15 minutes | Very short-term |
+| `TMF_Fwd_30m` | 30 minutes | Short-term |
+| `TMF_Fwd_60m` | 60 minutes | Primary |
+| `TMF_Fwd_120m` | 120 minutes | Persistence |
+
+A variable may have predictive capability at one horizon while providing little or no information at another.
+
+Therefore, rejection of a null hypothesis at one horizon will not automatically imply rejection at another horizon.
+
+---
+
+# 5. Treasury Yield Hypotheses
+
+Long-duration Treasury yields are expected to represent one of the most important explanatory-variable groups.
+
+## H1 — 30-Year Treasury Yield
+
+### Null
+
+\[
+H_{0,30Y}:
+\beta_{\Delta30Y}=0
+\]
+
+Changes in the 30-year Treasury yield contain no incremental predictive information about subsequent TMF returns.
+
+### Alternative
+
+\[
+H_{A,30Y}:
+\beta_{\Delta30Y}<0
+\]
+
+Increases in the 30-year Treasury yield are associated with lower subsequent TMF returns.
+
+### Expected Direction
+
+**Negative**
+
+---
+
+## H2 — 20-Year Treasury Yield
+
+### Null
+
+\[
+H_{0,20Y}:
+\beta_{\Delta20Y}=0
+\]
+
+### Alternative
+
+\[
+H_{A,20Y}:
+\beta_{\Delta20Y}<0
+\]
+
+### Expected Direction
+
+**Negative**
+
+---
+
+## H3 — 10-Year Treasury Yield
+
+### Null
+
+\[
+H_{0,10Y}:
+\beta_{\Delta10Y}=0
+\]
+
+### Alternative
+
+\[
+H_{A,10Y}:
+\beta_{\Delta10Y}<0
+\]
+
+### Expected Direction
+
+**Negative**
+
+The 10-year Treasury may contain less direct duration information than the 20-year and 30-year maturities but may still capture broad interest-rate repricing.
+
+---
+
+# 6. Treasury Maturity Comparison
+
+## H4 — Long-End Predictive Strength
+
+The project will test whether movements in longer-duration Treasury yields provide greater incremental predictive information about TMF than movements in shorter maturities.
+
+The initial economic expectation is:
+
+\[
+|\beta_{\Delta30Y}|
+>
+|\beta_{\Delta10Y}|
+\]
+
+However, coefficient magnitudes cannot be compared directly unless predictor scales are appropriately accounted for.
+
+This hypothesis will therefore be evaluated using standardized coefficients, incremental model performance, and out-of-sample predictive contribution rather than raw coefficients alone.
+
+---
+
+# 7. Yield Curve Hypothesis
+
+Individual yields may not capture all relevant Treasury-market information.
+
+Define a long-end curve spread such as:
+
+\[
+Spread_{10s30s}=Y_{30Y}-Y_{10Y}
+\]
+
+and its change:
+
+\[
+\Delta Spread_{10s30s}
+\]
+
+## H5 — Yield Curve Information
+
+### Null
+
+\[
+H_{0,Curve}:
+\beta_{\Delta Spread}=0
+\]
+
+Changes in Treasury curve shape provide no incremental predictive information after controlling for individual Treasury-yield changes.
+
+### Alternative
+
+\[
+H_{A,Curve}:
+\beta_{\Delta Spread}\neq0
+\]
+
+Changes in Treasury curve shape provide incremental predictive information about subsequent TMF returns.
+
+### Expected Direction
+
+**Not predetermined**
+
+The direction may depend on whether the curve movement reflects growth expectations, inflation expectations, monetary-policy repricing, term-premium changes, or other forces.
+
+---
+
+# 8. TLT Hypothesis
+
+TLT provides a directly observable market-price representation of long-duration Treasury behavior.
+
+## H6 — TLT Returns
+
+### Null
+
+\[
+H_{0,TLT}:
+\beta_{TLT}=0
+\]
+
+Recent TLT returns contain no incremental predictive information about subsequent TMF returns.
+
+### Alternative
+
+\[
+H_{A,TLT}:
+\beta_{TLT}>0
+\]
+
+Positive recent TLT returns are associated with positive subsequent TMF returns.
+
+### Expected Direction
+
+**Positive**
+
+Special attention will be paid to whether TLT contains genuinely leading information or simply reflects the same contemporaneous Treasury movement already incorporated into TMF.
+
+---
+
+# 9. Treasury Futures Hypothesis
+
+Where reliable intraday futures data are available, Treasury futures will be evaluated as potential leading indicators.
+
+## H7 — Treasury Futures
+
+### Null
+
+\[
+H_{0,Futures}:
+\beta_{Futures}=0
+\]
+
+Treasury futures movements provide no incremental predictive information about subsequent TMF returns.
+
+### Alternative
+
+\[
+H_{A,Futures}:
+\beta_{Futures}>0
+\]
+
+Positive long-duration Treasury futures returns are associated with positive subsequent TMF returns.
+
+### Expected Direction
+
+**Positive**
+
+Because Treasury futures trade extensively and may incorporate information rapidly, the project will test whether futures movements lead TMF at short horizons.
+
+---
+
+# 10. Macroeconomic Surprise Hypothesis
+
+Markets generally respond not only to economic releases themselves but to differences between released values and market expectations.
+
+A basic surprise variable may be represented as:
+
+\[
+Surprise = Actual - Consensus
+\]
+
+A standardized version may later be calculated as:
+
+\[
+Z_{Surprise}
+=
+\frac{Actual-Consensus}
+{\sigma_{historical\ surprises}}
+\]
+
+## H8 — Macroeconomic Surprises
+
+### Null
+
+Macroeconomic surprises provide no incremental information about subsequent TMF returns after controlling for contemporaneous Treasury-market movements.
+
+### Alternative
+
+Macroeconomic surprises provide incremental predictive information about subsequent TMF returns.
+
+### Expected Direction
+
+**Event dependent**
+
+The expected sign should not be universally predetermined because different releases have different economic interpretations.
+
+Individual event categories will therefore be modeled separately where sufficient observations exist.
+
+Potential categories include:
+
+- CPI
+- Core CPI
+- PCE
+- Core PCE
+- Nonfarm payrolls
+- Unemployment
+- Jobless claims
+- Retail sales
+- ISM
+- JOLTS
+- GDP
+
+---
+
+# 11. Federal Reserve Event Hypothesis
+
+## H9 — Federal Reserve Events
+
+### Null
+
+Federal Reserve event periods do not materially change the relationship between Treasury-market variables and subsequent TMF returns.
+
+### Alternative
+
+The magnitude, volatility, or persistence of TMF's response differs during Federal Reserve event periods.
+
+Potential events include:
+
+- FOMC rate decisions
+- FOMC statements
+- FOMC minutes
+- Scheduled Federal Reserve speeches
+- Other clearly timestamped Federal Reserve communications
+
+This hypothesis may eventually be represented using interaction terms.
+
+For example:
+
+\[
+R_{TMF,t+h}
+=
+\beta_0
++
+\beta_1\Delta Y_{30Y}
++
+\beta_2FedEvent
++
+\beta_3(\Delta Y_{30Y}\times FedEvent)
++
+\epsilon
+\]
+
+---
+
+# 12. Interest-Rate Volatility Hypothesis
+
+## H10 — Rate Volatility
+
+### Null
+
+Interest-rate volatility does not materially affect the relationship between Treasury movements and subsequent TMF returns.
+
+### Alternative
+
+The relationship between Treasury movements and subsequent TMF returns changes during elevated interest-rate volatility.
+
+Potential measurements may include:
+
+- MOVE Index
+- Realized Treasury volatility
+- Treasury futures volatility
+- Rolling yield volatility
+
+The project will test both direct effects and interaction effects.
+
+---
+
+# 13. U.S. Dollar Hypothesis
+
+## H11 — Dollar Movements
+
+### Null
+
+Recent U.S. dollar movements provide no incremental predictive information about subsequent TMF returns after controlling for Treasury-market variables.
+
+### Alternative
+
+Dollar movements provide incremental predictive information.
+
+### Expected Direction
+
+**Not predetermined**
+
+Dollar movements can reflect several different macroeconomic forces and therefore will be treated primarily as an empirical cross-asset hypothesis.
+
+---
+
+# 14. Equity-Market Hypothesis
+
+## H12 — Equity Returns
+
+### Null
+
+Recent broad-equity returns provide no incremental predictive information about subsequent TMF returns.
+
+### Alternative
+
+Equity-market movements provide incremental information about subsequent TMF returns.
+
+Potential variables include:
+
+- SPY
+- QQQ
+
+### Expected Direction
+
+**Not predetermined**
+
+Risk-on/risk-off relationships can change across market regimes.
+
+---
+
+# 15. Oil and Inflation-Sensitive Asset Hypothesis
+
+## H13 — Crude Oil
+
+### Null
+
+Recent crude-oil returns provide no incremental predictive information about subsequent TMF returns.
+
+### Alternative
+
+Crude-oil movements provide incremental predictive information about subsequent TMF returns.
+
+### Expected Direction
+
+Potentially **negative**, but not imposed on the model.
+
+Persistent increases in energy prices may influence inflation expectations and long-term yields, but the relationship may vary substantially across regimes.
+
+---
+
+# 16. Gold Hypothesis
+
+## H14 — Gold
+
+### Null
+
+Gold returns provide no incremental predictive information about subsequent TMF returns.
+
+### Alternative
+
+Gold returns provide incremental information about subsequent TMF returns.
+
+### Expected Direction
+
+**Not predetermined**
+
+Gold may reflect inflation expectations, real yields, dollar movements, safe-haven demand, or combinations of these factors.
+
+---
+
+# 17. TMF Momentum Hypothesis
+
+## H15 — Short-Term Momentum
+
+### Null
+
+Recent TMF returns contain no information about subsequent TMF returns.
+
+### Alternative
+
+Recent TMF returns exhibit statistically significant short-term momentum or continuation.
+
+For example:
+
+\[
+R_{TMF,t+60}
+=
+\beta_0
++
+\beta_1R_{TMF,t-15:t}
++
+\epsilon
+\]
+
+A positive coefficient would indicate continuation.
+
+---
+
+# 18. TMF Mean-Reversion Hypothesis
+
+Short-term momentum and mean reversion are competing possibilities.
+
+## H16 — Mean Reversion
+
+### Null
+
+TMF's deviation from intraday reference levels provides no information about subsequent returns.
+
+### Alternative
+
+Large deviations from reference levels are associated with subsequent mean reversion.
+
+Potential measurements include:
+
+\[
+VWAPDistance=
+\frac{P_t-VWAP_t}{VWAP_t}
+\]
+
+and standardized deviations from rolling means.
+
+If mean reversion exists, unusually positive deviations may be associated with lower subsequent returns and unusually negative deviations with higher subsequent returns.
+
+---
+
+# 19. Volume Hypothesis
+
+## H17 — Relative Volume
+
+### Null
+
+TMF relative volume provides no incremental information about subsequent returns or the strength of other predictive relationships.
+
+### Alternative
+
+Abnormally high volume contains information about subsequent TMF returns or strengthens relationships between price movements and other explanatory variables.
+
+Relative volume may be calculated against historical volume for the same time of day to account for intraday seasonality.
+
+---
+
+# 20. Time-of-Day Hypothesis
+
+Financial-market behavior is not necessarily constant throughout the trading session.
+
+## H18 — Intraday Regime
+
+### Null
+
+Predictive relationships remain constant throughout the trading session.
+
+### Alternative
+
+Predictive relationships vary systematically by time of day.
+
+Potential periods include:
+
+- Market open
+- Morning session
+- Midday
+- Afternoon
+- Final trading hour
+
+Time-of-day effects may eventually be modeled using categorical variables and interaction terms.
+
+---
+
+# 21. Event vs. Non-Event Days
+
+## H19 — Event Regime
+
+### Null
+
+Model relationships are equivalent on scheduled macroeconomic-event and non-event days.
+
+### Alternative
+
+Predictive relationships differ materially between scheduled event and non-event periods.
+
+This will test whether a single model is appropriate or whether separate market-regime models are justified.
+
+---
+
+# 22. Forecast-Horizon Hypothesis
+
+## H20 — Predictive Decay
+
+### Null
+
+Predictive capability does not materially differ across the 15-, 30-, 60-, and 120-minute horizons.
+
+### Alternative
+
+Predictive capability varies systematically with forecast horizon.
+
+The project will investigate whether information:
+
+- appears immediately,
+- strengthens over time,
+- persists,
+- or decays rapidly.
+
+---
+
+# 23. Initial Baseline Model
+
+The first multivariate model will remain intentionally simple.
+
+A candidate specification is:
+
+\[
+R_{TMF,t+60}
+=
+\beta_0
++
+\beta_1\Delta Y_{30Y}
++
+\beta_2\Delta Y_{10Y}
++
+\beta_3R_{TLT}
++
+\beta_4R_{DXY}
++
+\beta_5R_{SPY}
++
+\beta_6R_{Oil}
++
+\beta_7VWAPDistance_{TMF}
++
+\beta_8RelativeVolume_{TMF}
++
+\epsilon
+\]
+
+The final baseline specification will depend on data availability and preliminary data-quality analysis.
+
+Variables will not be retained merely because they improve in-sample fit.
+
+---
+
+# 24. Statistical Significance
+
+The initial conventional significance threshold will be:
+
+\[
+\alpha=0.05
+\]
+
+Therefore:
+
+- `p < 0.05` → evidence against the individual null hypothesis
+- `p >= 0.05` → insufficient evidence to reject the individual null hypothesis
+
+However, p-values will not be interpreted in isolation.
+
+The analysis will also examine:
+
+- Confidence intervals
+- Effect sizes
+- Standardized coefficients
+- Economic interpretation
+- Coefficient stability
+- Out-of-sample performance
+
+Because many hypotheses and predictors may eventually be tested, multiple-testing risk will also need to be considered.
+
+---
+
+# 25. Multicollinearity
+
+Treasury-market predictors are expected to be highly correlated.
+
+For example:
+
+\[
+Corr(\Delta10Y,\Delta30Y)>0
+\]
+
+and:
+
+\[
+Corr(R_{TLT},-\Delta30Y)>0
+\]
+
+Multicollinearity will be evaluated using:
+
+- Correlation matrices
+- Variance Inflation Factor (VIF)
+- Coefficient stability
+- Ridge regression
+- Lasso regression
+
+The significance of individual coefficients will be interpreted cautiously when predictors are highly correlated.
+
+---
+
+# 26. Out-of-Sample Requirement
+
+A relationship will not be considered meaningfully predictive solely because it is statistically significant in the training sample.
+
+The project distinguishes between:
+
+### Explanatory relationship
+
+A variable is statistically associated with TMF returns within the analyzed sample.
+
+and:
+
+### Predictive relationship
+
+A variable improves forecasts of observations that were not used to estimate the model.
+
+The second standard is substantially more important for this project.
+
+---
+
+# 27. Validation Method
+
+Random train/test splitting will not serve as the primary validation method.
+
+The project will use chronological validation followed by walk-forward testing.
+
+Conceptually:
+
+```text
+TRAIN ──────────────── TEST
+Past                    Future
+```
+
+and eventually:
+
+```text
+Train → Test
+Expand → Test
+Expand → Test
+Expand → Test
+```
+
+At no point should future observations influence historical model estimation.
+
+---
+
+# 28. Data Leakage Rule
+
+For every observation at timestamp `t`:
+
+> Every independent variable must represent information that could actually have been known at or before timestamp `t`.
+
+This applies to:
+
+- Market prices
+- Economic releases
+- Consensus estimates
+- Rolling calculations
+- Normalization
+- Missing-value treatment
+- Feature engineering
+- Model training
+
+Any variable that violates this rule will be excluded regardless of its apparent predictive performance.
+
+---
+
+# 29. Criteria for Predictive Evidence
+
+No single metric will determine whether a variable or model is useful.
+
+Evidence will be evaluated across four dimensions.
+
+## Statistical Evidence
+
+Examples:
+
+- coefficient significance
+- confidence intervals
+- joint significance tests
+
+## Predictive Evidence
+
+Examples:
+
+- out-of-sample R²
+- MAE
+- RMSE
+- forecast/realized correlation
+- directional accuracy
+
+## Stability
+
+The relationship should be examined across:
+
+- different years
+- different rate environments
+- high/low volatility
+- event/non-event periods
+- different times of day
+
+## Economic Significance
+
+Even a statistically significant coefficient may be too small or unstable to have meaningful forecasting value.
+
+---
+
+# 30. Hypothesis Decision Log
+
+As hypotheses are tested, results will eventually be recorded in a structured table.
+
+| ID | Hypothesis | Horizon | Expected Direction | In-Sample Result | Out-of-Sample Result | Conclusion |
+|---|---|---:|---|---|---|---|
+| H1 | 30Y yield change | 60m | Negative | TBD | TBD | TBD |
+| H2 | 20Y yield change | 60m | Negative | TBD | TBD | TBD |
+| H3 | 10Y yield change | 60m | Negative | TBD | TBD | TBD |
+| H4 | Long-end relative predictive strength | 60m | 30Y > 10Y | TBD | TBD | TBD |
+| H5 | Yield-curve change | 60m | Unspecified | TBD | TBD | TBD |
+| H6 | TLT return | 60m | Positive | TBD | TBD | TBD |
+| H7 | Treasury futures | 60m | Positive | TBD | TBD | TBD |
+| H8 | Macro surprise | 60m | Event dependent | TBD | TBD | TBD |
+| H9 | Fed-event interaction | 60m | Unspecified | TBD | TBD | TBD |
+| H10 | Rate-volatility regime | 60m | Unspecified | TBD | TBD | TBD |
+| H11 | Dollar return | 60m | Unspecified | TBD | TBD | TBD |
+| H12 | Equity return | 60m | Unspecified | TBD | TBD | TBD |
+| H13 | Oil return | 60m | Potentially negative | TBD | TBD | TBD |
+| H14 | Gold return | 60m | Unspecified | TBD | TBD | TBD |
+| H15 | TMF momentum | 60m | Positive if momentum | TBD | TBD | TBD |
+| H16 | TMF mean reversion | 60m | Opposite deviation | TBD | TBD | TBD |
+| H17 | Relative volume | 60m | Unspecified | TBD | TBD | TBD |
+| H18 | Time-of-day regime | Multiple | Unspecified | TBD | TBD | TBD |
+| H19 | Event regime | Multiple | Unspecified | TBD | TBD | TBD |
+| H20 | Predictive decay | Multiple | Unspecified | TBD | TBD | TBD |
+
+---
+
+# 31. Research Standard
+
+The objective of this project is not to prove that TMF is predictable.
+
+The objective is to determine whether measurable predictive information exists.
+
+A hypothesis that fails is still a useful research result.
+
+Variables will not be selected solely because they produced favorable historical results, and models will not be considered successful unless their relationships demonstrate reasonable stability on previously unseen data.
+
+---
+
+## Current Status
+
+**Research design:** In progress  
+**Hypotheses:** Initial framework defined  
+**Data acquisition:** Not started  
+**Model estimation:** Not started  
+**Out-of-sample validation:** Not started
+
+The next stage of the project is to define the **data dictionary and source requirements** needed to test these hypotheses.
