@@ -1,10 +1,25 @@
 # TMF Intraday Predictive Analytics
 
-A quantitative research project investigating whether Treasury-market, bond-market, macroeconomic, cross-asset, and TMF-specific variables contain statistically significant information for predicting short-term returns of the **Direxion Daily 20+ Year Treasury Bull 3X Shares (TMF)**.
+A quantitative research and forward-testing system investigating whether Treasury-market, macroeconomic, cross-asset, and TMF-specific information contains statistically significant and out-of-sample predictive information about short-term TMF returns.
 
-The project focuses on **15-, 30-, 60-, and 120-minute forward TMF returns** and emphasizes reproducible data engineering, statistical testing, time-series validation, and strict prevention of look-ahead bias.
+The project combines:
 
-> **Project Status:** Research Design & Data Acquisition
+- Python-based quantitative research
+- Intraday market-data engineering
+- Multiple regression and regularized models
+- Time-series and walk-forward validation
+- thinkorswim market analysis
+- thinkScript indicators
+- paperMoney prospective testing
+- Model-vs-realized performance monitoring
+
+The primary prediction horizons are:
+
+**15, 30, 60, and 120 minutes**
+
+with the **60-minute forecast** serving as the initial primary research target.
+
+> **Current Status:** Research Design & Data Source Selection
 
 ---
 
