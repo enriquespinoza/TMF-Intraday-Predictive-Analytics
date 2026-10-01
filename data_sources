@@ -1,0 +1,1004 @@
+# TMF Intraday Predictive Analytics — Data Sources
+
+## 1. Purpose
+
+This document defines the planned data sources for the TMF Intraday Predictive Analytics project.
+
+The objective is to identify reliable, timestamp-accurate, reproducible data capable of supporting:
+
+1. Historical quantitative research
+2. Intraday feature engineering
+3. Statistical modeling
+4. Walk-forward validation
+5. thinkorswim market monitoring
+6. paperMoney prospective testing
+7. Model-versus-realized performance analysis
+
+A data source will not be incorporated into the modeling pipeline until its historical depth, frequency, timestamp methodology, and leakage risks have been evaluated.
+
+---
+
+# 2. Source Selection Principles
+
+Each candidate data source will be evaluated using:
+
+| Criterion | Requirement |
+|---|---|
+| Historical depth | Sufficient observations for time-series analysis |
+| Intraday frequency | Preferably 1m or 5m for core market variables |
+| Timestamp accuracy | Required |
+| Timezone documentation | Required |
+| Data reliability | High |
+| API/download access | Preferred |
+| Reproducibility | Required |
+| Cost | Documented |
+| Rate limits | Documented |
+| Licensing | Documented |
+| Corporate-action handling | Required for ETFs |
+| Revision handling | Required for macroeconomic data |
+
+No source will be selected solely because it is free.
+
+---
+
+# 3. Source Tiers
+
+Data sources will be classified into four tiers.
+
+## Tier 1 — Core Modeling Data
+
+Required for the primary 5-minute predictive model.
+
+Examples:
+
+- TMF
+- TLT
+- Treasury futures
+- Intraday Treasury-market proxies
+- SPY
+- QQQ
+
+## Tier 2 — Cross-Asset Predictors
+
+Used to test incremental predictive capability.
+
+Examples:
+
+- U.S. dollar
+- WTI crude oil
+- Gold
+- VIX
+
+## Tier 3 — Macro / Regime Data
+
+Used primarily for event and regime modeling.
+
+Examples:
+
+- CPI
+- PCE
+- GDP
+- payrolls
+- daily Treasury yields
+- Federal Reserve events
+
+## Tier 4 — Validation Platforms
+
+Used for prospective testing rather than historical model estimation.
+
+Primary platform:
+
+- thinkorswim
+- paperMoney
+
+---
+
+# 4. Schwab / thinkorswim
+
+## Role
+
+Schwab and thinkorswim will be investigated for three separate purposes:
+
+### Market Observation
+
+thinkorswim will provide synchronized market charts for observing:
+
+- TMF
+- TLT
+- Treasury-market instruments
+- equities
+- volatility
+- commodities
+- dollar markets
+
+### Strategy Visualization
+
+Validated model components that can be represented using thinkScript may be recreated as:
+
+- custom studies
+- chart indicators
+- scans
+- strategy rules
+
+### Prospective Validation
+
+paperMoney will provide a simulated environment for testing model-derived signals on future observations.
+
+---
+
+# 5. Schwab Developer API
+
+The Schwab Developer API will be investigated as a potential programmatic market-data source.
+
+Potential use:
+
+```text
+Schwab Market Data
+        ↓
+Python Collector
+        ↓
+Raw Storage
+        ↓
+Cleaning
+        ↓
+5-Minute Dataset
+```
+
+Before implementation, the following must be verified:
+
+- Available instruments
+- Historical price depth
+- Intraday candle frequencies
+- Request limits
+- Authentication requirements
+- OAuth token handling
+- Historical futures support
+- Index support
+- Market-data licensing restrictions
+- Timestamp definitions
+
+## Status
+
+**Candidate — validation required**
+
+The Python architecture must not depend exclusively on Schwab until these capabilities have been verified.
+
+---
+
+# 6. thinkorswim
+
+thinkorswim itself should primarily be treated as:
+
+```text
+Visualization
++
+Market Monitoring
++
+thinkScript Research
++
+Prospective Validation
+```
+
+rather than automatically assuming that data displayed by the desktop platform can be exported into the Python historical research pipeline.
+
+## Status
+
+**Selected validation platform**
+
+---
+
+# 7. paperMoney
+
+paperMoney will be used after historical model development and out-of-sample validation.
+
+Its purpose is to answer:
+
+> Does the model continue to behave as expected when predictions are generated before future market outcomes are known?
+
+Potential outputs:
+
+```text
+signal_timestamp
+entry_timestamp
+entry_price
+exit_timestamp
+exit_price
+predicted_return
+direction_probability
+realized_return
+model_version
+strategy_version
+```
+
+paperMoney observations will not be mixed with historical training observations.
+
+## Status
+
+**Selected prospective testing environment**
+
+---
+
+# 8. TMF
+
+## Instrument
+
+Direxion Daily 20+ Year Treasury Bull 3X Shares
+
+Ticker:
+
+`TMF`
+
+## Required Data
+
+```text
+timestamp
+open
+high
+low
+close
+volume
+```
+
+## Required Frequency
+
+Preferred:
+
+`1-minute`
+
+Minimum:
+
+`5-minute`
+
+1-minute source data may be aggregated into 5-minute modeling intervals.
+
+## Candidate Source
+
+Primary candidate:
+
+**Schwab market data**
+
+Secondary historical provider may be required depending on Schwab historical-depth limitations.
+
+## Status
+
+**Source validation required**
+
+---
+
+# 9. TLT
+
+## Instrument
+
+iShares 20+ Year Treasury Bond ETF
+
+Ticker:
+
+`TLT`
+
+## Required Data
+
+```text
+timestamp
+open
+high
+low
+close
+volume
+```
+
+## Frequency
+
+Preferred:
+
+`1-minute`
+
+Modeling:
+
+`5-minute`
+
+## Candidate Source
+
+Primary candidate:
+
+**Schwab market data**
+
+## Status
+
+**Source validation required**
+
+---
+
+# 10. Treasury Yields
+
+Required maturities:
+
+```text
+10-Year
+20-Year
+30-Year
+```
+
+Two fundamentally different Treasury datasets are required.
+
+---
+
+# 11. Daily Treasury Yields
+
+Daily Treasury yields are useful for:
+
+- market regime classification
+- long-term historical context
+- daily rate trends
+- normalization
+- volatility regimes
+- model interaction variables
+
+## Candidate Source
+
+Federal Reserve / FRED
+
+Potential series:
+
+```text
+DGS10
+DGS20
+DGS30
+```
+
+## Frequency
+
+Daily
+
+## Limitation
+
+Daily Treasury yields cannot be used as if they were 5-minute observations.
+
+They cannot directly generate:
+
+```text
+ust10y_chg_5m
+ust20y_chg_15m
+ust30y_chg_60m
+```
+
+Therefore, FRED cannot serve as the primary source for the project's intraday Treasury-yield features.
+
+## Status
+
+**Selected for daily Treasury context**
+
+---
+
+# 12. Intraday Treasury Rates
+
+Intraday Treasury information is one of the most important unresolved data-source requirements.
+
+The project requires either:
+
+### Direct Intraday Treasury Yield Data
+
+or
+
+### Highly Liquid Treasury Futures as the primary intraday rate-market representation
+
+Potential features include:
+
+```text
+10Y rate movement
+20Y rate movement
+30Y rate movement
+long-duration futures returns
+curve movement
+```
+
+Because official constant-maturity Treasury data are not published at 5-minute frequency, another source is required.
+
+## Status
+
+**Critical unresolved source**
+
+---
+
+# 13. Treasury Futures
+
+Treasury futures may become the primary intraday rates signal.
+
+Candidate contracts include:
+
+| Market | Research Label |
+|---|---|
+| 10-Year Treasury Note | ZN |
+| U.S. Treasury Bond | ZB |
+| Ultra U.S. Treasury Bond | UB |
+
+Exact platform symbols must be verified separately.
+
+## Required Fields
+
+```text
+timestamp
+open
+high
+low
+close
+volume
+```
+
+Optional:
+
+```text
+open_interest
+bid
+ask
+```
+
+## Required Frequency
+
+Preferred:
+
+`1-minute`
+
+Modeling:
+
+`5-minute`
+
+## Advantages
+
+Treasury futures potentially provide:
+
+- high liquidity
+- intraday rate-market repricing
+- premarket information
+- direct exposure to Treasury duration
+- rapid reaction to macroeconomic announcements
+
+## Important Issue
+
+Historical continuous futures series must account for contract rolls.
+
+Artificial price changes caused by switching contracts cannot be interpreted as market returns.
+
+## Candidate Sources
+
+- Schwab / thinkorswim
+- CME-derived historical data
+- Additional market-data provider if required
+
+## Status
+
+**High-priority source investigation**
+
+---
+
+# 14. FRED
+
+## Provider
+
+Federal Reserve Bank of St. Louis
+
+## Planned Use
+
+FRED will be used primarily for lower-frequency macroeconomic and financial context.
+
+Potential variables include:
+
+```text
+DGS10
+DGS20
+DGS30
+Federal Funds Rate
+inflation expectations
+credit conditions
+economic indicators
+```
+
+## Advantages
+
+- authoritative sources
+- long historical coverage
+- reproducible series IDs
+- API access
+- strong documentation
+
+## Limitation
+
+Most Treasury constant-maturity series required here are daily rather than intraday.
+
+Therefore:
+
+**FRED is a regime/context source, not the primary intraday market-data source.**
+
+## Status
+
+**Selected**
+
+---
+
+# 15. SPY
+
+Ticker:
+
+`SPY`
+
+Purpose:
+
+Broad U.S. equity-market signal.
+
+Required:
+
+```text
+OHLCV
+1m preferred
+5m modeling
+```
+
+Candidate source:
+
+**Schwab**
+
+## Status
+
+**Source validation required**
+
+---
+
+# 16. QQQ
+
+Ticker:
+
+`QQQ`
+
+Purpose:
+
+Technology/growth-equity market signal.
+
+Required:
+
+```text
+OHLCV
+1m preferred
+5m modeling
+```
+
+Candidate source:
+
+**Schwab**
+
+## Status
+
+**Source validation required**
+
+---
+
+# 17. U.S. Dollar
+
+The project requires a liquid representation of U.S. dollar movement.
+
+Possible representations include:
+
+- U.S. Dollar Index
+- Dollar futures
+- suitable liquid ETF/proxy
+
+Selection criteria:
+
+- intraday history
+- reliable timestamps
+- sufficient liquidity
+- consistent historical construction
+
+## Status
+
+**Instrument/source selection required**
+
+---
+
+# 18. WTI Crude Oil
+
+Purpose:
+
+Potential inflation and macroeconomic signal.
+
+Possible instruments:
+
+- WTI futures
+- suitable liquid oil-market proxy
+
+Preferred:
+
+Futures if reliable historical intraday data are available.
+
+Required frequency:
+
+`5-minute or better`
+
+## Status
+
+**Source selection required**
+
+---
+
+# 19. Gold
+
+Purpose:
+
+Potential real-rate, inflation, dollar, and risk-regime signal.
+
+Possible instruments:
+
+- gold futures
+- liquid ETF proxy
+
+Preferred:
+
+Futures if reliable intraday historical data are available.
+
+## Status
+
+**Source selection required**
+
+---
+
+# 20. VIX
+
+Purpose:
+
+Broad equity-market volatility regime.
+
+Possible uses:
+
+```text
+vix_level
+vix_change
+high_volatility_regime
+```
+
+Intraday history is preferred where available.
+
+## Status
+
+**Source validation required**
+
+---
+
+# 21. MOVE Index
+
+Purpose:
+
+Interest-rate volatility regime.
+
+Potential features:
+
+```text
+move_level
+move_daily_change
+rate_vol_regime
+```
+
+Because historical intraday MOVE data may be difficult or expensive to obtain, MOVE should initially be treated as a lower-frequency regime variable.
+
+It must not be artificially converted into 5-minute observations and interpreted as continuously updating information.
+
+## Status
+
+**Phase Two**
+
+---
+
+# 22. Bureau of Labor Statistics
+
+The U.S. Bureau of Labor Statistics will be investigated for economic releases such as:
+
+- CPI
+- employment
+- unemployment
+- payroll-related data
+
+Required information:
+
+```text
+release_name
+release_date
+release_timestamp
+actual
+previous
+revision
+```
+
+Consensus expectations generally require a separate historical source.
+
+Official government data provide actual releases but do not necessarily provide the market consensus that existed immediately before the release.
+
+## Status
+
+**Selected for applicable official macroeconomic actuals**
+
+---
+
+# 23. Bureau of Economic Analysis
+
+The Bureau of Economic Analysis will be used for applicable releases such as:
+
+- GDP
+- Personal Income and Outlays
+- PCE
+- Core PCE-related data
+
+Required information:
+
+```text
+release_name
+release_timestamp
+actual
+previous
+revision
+```
+
+The historical release timestamp must be preserved.
+
+## Status
+
+**Selected for applicable official releases**
+
+---
+
+# 24. Macroeconomic Consensus Data
+
+One of the project's more difficult data requirements is historical consensus expectations.
+
+To calculate:
+
+\[
+Surprise=Actual-Consensus
+\]
+
+we need the consensus that existed **before the economic release**.
+
+Using a subsequently revised or reconstructed estimate could introduce look-ahead bias.
+
+Candidate sources must therefore provide historically timestamped consensus estimates.
+
+Potential sources will be evaluated separately.
+
+## Status
+
+**Unresolved / Phase Two**
+
+---
+
+# 25. Federal Reserve
+
+Official Federal Reserve sources should be used for:
+
+- FOMC meeting dates
+- policy decisions
+- statements
+- minutes
+- scheduled speeches where historically available
+
+Potential fields:
+
+```text
+event_timestamp
+event_type
+speaker
+scheduled
+```
+
+## Status
+
+**Selected official event source**
+
+---
+
+# 26. Treasury Auctions
+
+Official U.S. Treasury sources should be investigated for auction information.
+
+Potential fields:
+
+```text
+auction_date
+auction_timestamp
+maturity
+offering_amount
+high_yield
+bid_to_cover
+direct_pct
+indirect_pct
+```
+
+This dataset is not required for the minimum viable model.
+
+## Status
+
+**Phase Two**
+
+---
+
+# 27. Source Matrix
+
+| Dataset | Primary Candidate | Frequency | Project Role | Status |
+|---|---|---:|---|---|
+| TMF | Schwab | 1m/5m | Core | Validate |
+| TLT | Schwab | 1m/5m | Core | Validate |
+| 10Y daily | FRED | Daily | Regime | Selected |
+| 20Y daily | FRED | Daily | Regime | Selected |
+| 30Y daily | FRED | Daily | Regime | Selected |
+| Treasury futures | Schwab/CME | 1m/5m | Core | Investigate |
+| Intraday Treasury yields | TBD | 1m/5m | Core | Unresolved |
+| SPY | Schwab | 1m/5m | Cross-asset | Validate |
+| QQQ | Schwab | 1m/5m | Cross-asset | Validate |
+| Dollar | TBD | 1m/5m | Cross-asset | Select |
+| WTI | TBD | 1m/5m | Cross-asset | Select |
+| Gold | TBD | 1m/5m | Cross-asset | Select |
+| VIX | TBD | Intraday | Regime | Validate |
+| MOVE | TBD | Daily | Regime | Phase Two |
+| CPI | BLS | Event | Macro | Selected |
+| Employment | BLS | Event | Macro | Selected |
+| GDP | BEA | Event | Macro | Selected |
+| PCE | BEA | Event | Macro | Selected |
+| Consensus estimates | TBD | Event | Macro | Unresolved |
+| Fed events | Federal Reserve | Event | Macro | Selected |
+| Treasury auctions | U.S. Treasury | Event | Macro | Phase Two |
+| Forward test | paperMoney | Live | Validation | Selected |
+
+---
+
+# 28. Historical vs Prospective Sources
+
+The project must maintain a strict distinction between historical research and prospective validation.
+
+## Historical Research
+
+Used to estimate models:
+
+```text
+historical market data
+historical macro data
+historical event data
+```
+
+## Prospective Validation
+
+Used after model development:
+
+```text
+live/near-live market observations
+model prediction logs
+thinkorswim
+paperMoney
+```
+
+Prospective observations should not later be inserted into the original training dataset without creating a clearly defined new model version.
+
+---
+
+# 29. Minimum Viable Data Source Stack
+
+The first model does not require every proposed dataset.
+
+The initial target stack is:
+
+```text
+TMF
+TLT
+Treasury futures
+SPY
+QQQ
+Daily Treasury rates
+```
+
+Optional early additions:
+
+```text
+Dollar
+WTI
+Gold
+VIX
+```
+
+Later additions:
+
+```text
+Macro surprises
+Fed-event interactions
+MOVE
+Treasury auctions
+```
+
+---
+
+# 30. First Data Acquisition Milestone
+
+The first acquisition milestone is:
+
+> Obtain synchronized 5-minute TMF, TLT, and Treasury-market observations covering sufficient historical depth to construct and evaluate the 15-, 30-, 60-, and 120-minute forecasting targets.
+
+Success criteria:
+
+- timestamps validated
+- historical depth documented
+- missingness quantified
+- 5-minute synchronization possible
+- corporate actions handled
+- futures rolls handled where applicable
+- data-source methodology documented
+- reproducible acquisition process established
+
+---
+
+# 31. Source Validation Log
+
+Each candidate source should eventually be recorded here.
+
+| Source | Dataset | Tested | Frequency | Historical Depth | Accepted | Notes |
+|---|---|---|---|---|---|---|
+| Schwab | TMF | No | TBD | TBD | TBD | API validation required |
+| Schwab | TLT | No | TBD | TBD | TBD | API validation required |
+| Schwab | Treasury futures | No | TBD | TBD | TBD | Verify support |
+| FRED | DGS10 | Yes | Daily | Long | Yes | Regime only |
+| FRED | DGS20 | Yes | Daily | Long | Yes | Regime only |
+| FRED | DGS30 | Yes | Daily | Long | Yes | Regime only |
+| BLS | CPI/employment | No | Event | Long | TBD | Actual releases |
+| BEA | GDP/PCE | No | Event | Long | TBD | Actual releases |
+
+---
+
+# 32. Current Source Decisions
+
+### Confirmed
+
+**FRED**
+
+Use for daily Treasury rates and lower-frequency economic context.
+
+**BEA**
+
+Use as an authoritative source for applicable economic releases and historical release schedules.
+
+**thinkorswim / paperMoney**
+
+Use for market observation and prospective model/strategy validation.
+
+### Pending Verification
+
+**Schwab Developer API**
+
+Determine exact historical intraday capabilities before making it the project's primary market-data provider.
+
+### Critical Unresolved Requirement
+
+**Intraday Treasury-market data**
+
+The core predictive model requires a reliable representation of intraday long-duration Treasury repricing.
+
+Treasury futures are currently the leading candidate if direct intraday Treasury-yield data cannot be obtained at suitable quality and cost.
+
+---
+
+# 33. Next Decision
+
+Before building `src/data/collect.py`, the project must answer:
+
+> What source will provide the historical intraday market dataset used to estimate the initial model?
+
+The immediate source-validation sequence should be:
+
+```text
+1. Test Schwab historical TMF data
+          ↓
+2. Test Schwab historical TLT data
+          ↓
+3. Test Schwab Treasury futures data
+          ↓
+4. Measure available historical depth
+          ↓
+5. Determine whether another historical provider is required
+          ↓
+6. Freeze Version 1 source architecture
+          ↓
+7. Build acquisition pipeline
+```
+
+No modeling should begin until the core source architecture has been documented and validated.
