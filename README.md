@@ -263,6 +263,67 @@ R_{TMF,t+60} =
 
 The exact specification will depend on the results of the exploratory analysis.
 
+
+
+## System Architecture
+
+```text
+             MARKET DATA
+                  │
+                  ▼
+         ┌─────────────────┐
+         │ Python ETL      │
+         │ Cleaning        │
+         │ Synchronization │
+         └────────┬────────┘
+                  │
+                  ▼
+         ┌─────────────────┐
+         │ Feature Engine  │
+         └────────┬────────┘
+                  │
+                  ▼
+         ┌─────────────────┐
+         │ Statistical     │
+         │ Models          │
+         │                 │
+         │ OLS             │
+         │ Ridge / Lasso   │
+         │ Classification  │
+         │ ML Models       │
+         └────────┬────────┘
+                  │
+                  ▼
+         ┌─────────────────┐
+         │ Walk-Forward    │
+         │ Validation      │
+         └────────┬────────┘
+                  │
+             validated?
+                  │
+                  ▼
+       ┌──────────────────────┐
+       │ Signal Generation    │
+       │                      │
+       │ Expected Return      │
+       │ Direction Probability│
+       │ Signal Strength      │
+       └──────────┬───────────┘
+                  │
+            ┌─────┴─────┐
+            ▼           ▼
+      thinkorswim     Reporting
+      thinkScript     / API
+            │
+            ▼
+       paperMoney
+            │
+            ▼
+    Prospective Testing
+            │
+            ▼
+ Backtest vs Forward Test
+```
 ---
 
 ## Model Progression
@@ -413,34 +474,41 @@ TMF-Intraday-Predictive-Analytics/
 ├── data/
 │   ├── raw/
 │   ├── processed/
-│   └── features/
+│   ├── features/
+│   └── forward_test/
 │
 ├── src/
 │   ├── data/
-│   │   ├── collect.py
-│   │   ├── clean.py
-│   │   └── align.py
-│   │
 │   ├── features/
-│   │   └── build_features.py
-│   │
 │   ├── models/
-│   │   ├── regression.py
-│   │   └── validation.py
-│   │
+│   ├── signals/
 │   └── utils/
 │
 ├── notebooks/
-│   ├── 01_data_quality.ipynb
-│   ├── 02_exploratory_analysis.ipynb
-│   ├── 03_predictive_capability.ipynb
-│   └── 04_regression.ipynb
 │
 ├── docs/
 │   ├── research_design.md
 │   ├── hypotheses.md
 │   ├── data_dictionary.md
-│   └── methodology.md
+│   ├── methodology.md
+│   └── validation_framework.md
+│
+├── thinkorswim/
+│   ├── studies/
+│   ├── strategies/
+│   ├── scans/
+│   └── README.md
+│
+├── papermoney/
+│   ├── exports/
+│   └── analysis/
+│
+├── backtests/
+│   └── results/
+│
+├── models/
+│
+├── reports/
 │
 └── tests/
 ```
