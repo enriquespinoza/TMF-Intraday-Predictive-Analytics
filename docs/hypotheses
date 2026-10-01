@@ -70,6 +70,134 @@ H_A:
 
 At least one explanatory variable provides statistically significant incremental information about future TMF returns.
 
+
+# Forward-Validation Hypotheses
+
+The original H1-H20 hypotheses concern the statistical relationships between market variables and future TMF returns.
+
+The introduction of thinkorswim and paperMoney adds a separate prospective validation stage.
+
+These hypotheses will only be evaluated after the historical model has been finalized.
+
+---
+
+## H21 — Prospective Directional Accuracy
+
+### Null
+
+\[
+H_{0,ForwardDirection}
+\]
+
+The model's prospective directional forecasts do not demonstrate predictive capability beyond the defined benchmark.
+
+### Alternative
+
+\[
+H_{A,ForwardDirection}
+\]
+
+Prospective forecasts demonstrate directional predictive capability relative to the benchmark.
+
+Performance will be measured using predictions timestamped before their outcomes occur.
+
+---
+
+## H22 — Forecast Calibration
+
+For forecasts producing probability:
+
+\[
+P(R_{TMF,t+h}>0)
+\]
+
+the project will test whether predicted probabilities correspond reasonably with realized frequencies.
+
+For example, predictions near:
+
+\[
+P=0.70
+\]
+
+should produce positive outcomes approximately 70% of the time in a well-calibrated model over a sufficiently large sample.
+
+Calibration will be evaluated using appropriate probability-calibration diagnostics rather than individual observations.
+
+---
+
+## H23 — Signal Strength
+
+### Null
+
+Stronger model signals do not correspond to systematically stronger subsequent TMF returns.
+
+### Alternative
+
+Larger absolute model predictions are associated with larger subsequent realized moves.
+
+This hypothesis tests whether model confidence contains useful information beyond simple directional classification.
+
+---
+
+## H24 — Backtest vs Forward-Test Stability
+
+### Null
+
+Historical out-of-sample performance and prospective forward-test performance differ materially.
+
+### Alternative
+
+Predictive relationships remain reasonably stable during prospective testing.
+
+The purpose is to identify potential overfitting, regime dependence, or historical-data artifacts.
+
+---
+
+## H25 — Market Regime Stability
+
+The model will be tested prospectively across different market environments.
+
+Potential regimes include:
+
+- rising-rate environments
+- falling-rate environments
+- high rate volatility
+- low rate volatility
+- macroeconomic event periods
+- ordinary trading periods
+
+The project will evaluate whether predictive performance depends materially on regime.
+
+---
+
+# Forward-Test Research Rule
+
+Once prospective testing begins, model predictions must be recorded before the corresponding outcome occurs.
+
+Historical predictions may not be reconstructed after observing the outcome and presented as prospective forecasts.
+
+Changes to:
+
+- model specification
+- features
+- thresholds
+- normalization
+- strategy rules
+
+must produce a new model or strategy version.
+
+Example:
+
+```text
+model_v1.0
+model_v1.1
+model_v2.0
+
+strategy_v1.0
+strategy_v1.1
+```
+
+This preserves the integrity of prospective testing.
 ---
 
 # 4. Forecast Horizons
