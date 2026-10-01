@@ -74,6 +74,148 @@ Model-ready dataset containing:
 - normalized variables where appropriate
 - forward-return targets
 
+# Schwab / thinkorswim Integration
+
+thinkorswim will serve as a market-observation, signal-validation, and prospective paper-trading environment.
+
+Where appropriate, Schwab market data may also be investigated as a source for the Python research pipeline.
+
+The project must distinguish between:
+
+1. Historical research data
+2. Real-time/near-real-time market observations
+3. Model-generated predictions
+4. thinkorswim confirmation variables
+5. paperMoney forward-test results
+
+Data originating from different providers must not automatically be assumed equivalent.
+
+---
+
+# Data Provenance
+
+Every market variable should include sufficient metadata to identify its source.
+
+Recommended metadata fields:
+
+| Variable | Description |
+|---|---|
+| `source_name` | Data provider |
+| `source_symbol` | Provider-specific symbol |
+| `source_frequency` | Original observation frequency |
+| `source_timezone` | Original timezone |
+| `download_timestamp` | Acquisition timestamp |
+| `adjusted` | Adjustment status |
+| `environment` | Historical / live / paper |
+| `data_version` | Dataset version where applicable |
+
+This allows the project to identify differences between historical research data and observations displayed in thinkorswim.
+
+---
+
+# thinkorswim Instrument Mapping
+
+Each research variable should eventually be mapped to its equivalent thinkorswim symbol where available.
+
+| Research Asset | Research Variable | thinkorswim Symbol | Status |
+|---|---|---|---|
+| TMF | Primary ETF | `TMF` | Required |
+| TLT | Long Treasury ETF | `TLT` | Required |
+| 10Y Treasury | Yield/rate | TBD | Verify |
+| 20Y Treasury | Yield/rate | TBD | Verify |
+| 30Y Treasury | Yield/rate | TBD | Verify |
+| 10Y Treasury futures | Futures | TBD | Verify |
+| Treasury Bond futures | Futures | TBD | Verify |
+| Ultra Bond futures | Futures | TBD | Verify |
+| SPY | Equity market | `SPY` | Required |
+| QQQ | Technology equities | `QQQ` | Required |
+| VIX | Equity volatility | TBD | Verify |
+| U.S. Dollar | Dollar market | TBD | Verify |
+| WTI | Oil | TBD | Verify |
+| Gold | Gold | TBD | Verify |
+
+Symbols must be verified in thinkorswim before being treated as final.
+
+---
+
+# Model Output Dataset
+
+The predictive system should generate a timestamped prediction table.
+
+Potential fields:
+
+| Variable | Description |
+|---|---|
+| `prediction_timestamp` | Time prediction generated |
+| `forecast_horizon` | 15/30/60/120 minutes |
+| `predicted_return` | Expected TMF forward return |
+| `direction_probability` | Probability of positive return |
+| `signal_strength` | Standardized prediction strength |
+| `model_version` | Model generating prediction |
+| `feature_version` | Feature pipeline version |
+| `market_regime` | Current classified regime |
+
+Predictions must be recorded before the outcome becomes known.
+
+This creates a permanent prospective prediction record.
+
+---
+
+# Forward-Test Dataset
+
+paperMoney testing should use a separate dataset from historical model training.
+
+Potential fields:
+
+| Variable | Description |
+|---|---|
+| `signal_timestamp` | Time signal generated |
+| `entry_timestamp` | Simulated entry |
+| `entry_price` | Simulated execution price |
+| `exit_timestamp` | Simulated exit |
+| `exit_price` | Simulated exit price |
+| `side` | Long / short / no trade |
+| `quantity` | Simulated position size |
+| `predicted_return` | Model forecast at entry |
+| `direction_probability` | Model probability |
+| `realized_return` | Actual simulated return |
+| `holding_period` | Position duration |
+| `slippage_assumption` | Applied slippage |
+| `transaction_cost` | Estimated cost |
+| `model_version` | Model version |
+| `strategy_version` | Trading-rule version |
+
+Historical model-development data and forward-test observations must remain logically separated.
+
+---
+
+# Prediction Accuracy Dataset
+
+Each prospective prediction should eventually be joined to its realized outcome.
+
+Example fields:
+
+```text
+prediction_timestamp
+forecast_horizon
+predicted_return
+direction_probability
+actual_return
+predicted_direction
+actual_direction
+direction_correct
+forecast_error
+model_version
+```
+
+Forecast error:
+
+\[
+Error=ActualReturn-PredictedReturn
+\]
+
+This dataset will allow comparison of historical backtesting with prospective performance.
+
 ---
 
 # 3. Global Timestamp Standard
