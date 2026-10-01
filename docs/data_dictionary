@@ -1,0 +1,1223 @@
+# TMF Intraday Predictive Analytics — Data Dictionary
+
+## 1. Purpose
+
+This document defines the data requirements, field definitions, units, frequencies, transformations, and timing rules for the TMF Intraday Predictive Analytics project.
+
+The primary objective is to construct a synchronized, leakage-free intraday dataset capable of testing whether Treasury-market, macroeconomic, cross-asset, and TMF-specific variables contain predictive information about future TMF returns.
+
+The initial modeling frequency will be:
+
+**5-minute intervals**
+
+The primary forecast horizon will be:
+
+**60 minutes**
+
+Additional forecast horizons:
+
+- 15 minutes
+- 30 minutes
+- 120 minutes
+
+---
+
+# 2. Data Architecture
+
+Data will be separated into three layers:
+
+```text
+data/
+│
+├── raw/
+│   ├── tmf/
+│   ├── treasury/
+│   ├── futures/
+│   ├── cross_asset/
+│   └── macro/
+│
+├── processed/
+│   └── aligned_5min.parquet
+│
+└── features/
+    └── tmf_features.parquet
+```
+
+## Raw
+
+Original observations as received from the source.
+
+Raw data should not be manually modified.
+
+## Processed
+
+Cleaned observations with:
+
+- standardized timestamps
+- standardized column names
+- duplicate handling
+- trading-session filtering
+- missing-value treatment
+- common 5-minute intervals
+- validated data types
+
+## Features
+
+Model-ready dataset containing:
+
+- returns
+- yield changes
+- spreads
+- rolling statistics
+- lagged variables
+- event variables
+- normalized variables where appropriate
+- forward-return targets
+
+---
+
+# 3. Global Timestamp Standard
+
+All observations must eventually contain a standardized timestamp.
+
+Primary timestamp field:
+
+`timestamp`
+
+Target timezone:
+
+`America/New_York`
+
+Example:
+
+```text
+2026-10-01 10:35:00-04:00
+```
+
+Raw source timestamps must be preserved where practical.
+
+Recommended raw fields:
+
+| Field | Description |
+|---|---|
+| `timestamp_raw` | Original timestamp supplied by source |
+| `timestamp` | Standardized timestamp |
+| `timezone_source` | Original timezone |
+| `timezone_standard` | America/New_York |
+
+Daylight Saving Time must be handled using timezone-aware datetime objects rather than manually subtracting fixed UTC offsets.
+
+---
+
+# 4. Observation Frequency
+
+The primary modeling interval will be:
+
+\[
+5\text{ minutes}
+\]
+
+Example:
+
+```text
+09:30
+09:35
+09:40
+09:45
+...
+15:55
+16:00
+```
+
+Higher-frequency source data may be aggregated to 5-minute intervals.
+
+Lower-frequency data must not be artificially treated as new information every five minutes.
+
+---
+
+# 5. Trading Session
+
+The initial equity-market modeling session will generally be:
+
+```text
+09:30 ET – 16:00 ET
+```
+
+Regular market holidays and early-close sessions must be identified.
+
+Extended-hours observations may be stored but should initially remain separate from the primary modeling dataset.
+
+Treasury futures and other markets may trade outside these hours, but only information available at the prediction timestamp may be used.
+
+---
+
+# 6. Dataset Identification Fields
+
+Every processed observation should include:
+
+| Variable | Type | Description |
+|---|---|---|
+| `timestamp` | datetime | Standardized prediction timestamp |
+| `date` | date | Trading date |
+| `time` | time | Intraday time |
+| `day_of_week` | integer/category | Trading weekday |
+| `minutes_from_open` | integer | Minutes since 09:30 |
+| `minutes_to_close` | integer | Minutes until regular close |
+| `is_early_close` | boolean | Early-close session indicator |
+| `is_macro_event_day` | boolean | Scheduled major macro event occurs that day |
+| `is_fed_event_day` | boolean | Relevant Fed event occurs that day |
+
+---
+
+# 7. TMF Raw Market Data
+
+Instrument:
+
+**Direxion Daily 20+ Year Treasury Bull 3X Shares**
+
+Ticker:
+
+`TMF`
+
+TMF is the primary dependent asset.
+
+## Raw Fields
+
+| Variable | Type | Unit | Frequency | Description |
+|---|---|---:|---:|---|
+| `tmf_open` | float | USD | 5m | Interval opening price |
+| `tmf_high` | float | USD | 5m | Interval high |
+| `tmf_low` | float | USD | 5m | Interval low |
+| `tmf_close` | float | USD | 5m | Interval closing price |
+| `tmf_volume` | integer | shares | 5m | Interval trading volume |
+
+Where source data are higher frequency, OHLCV bars will be aggregated.
+
+---
+
+# 8. TMF Return Features
+
+## Log Return
+
+\[
+r_t =
+\ln\left(\frac{P_t}{P_{t-1}}\right)
+\]
+
+Potential variables:
+
+| Variable | Description |
+|---|---|
+| `tmf_ret_5m` | Previous 5-minute return |
+| `tmf_ret_15m` | Trailing 15-minute return |
+| `tmf_ret_30m` | Trailing 30-minute return |
+| `tmf_ret_60m` | Trailing 60-minute return |
+| `tmf_ret_120m` | Trailing 120-minute return |
+
+All trailing returns must use observations available at or before timestamp `t`.
+
+---
+
+# 9. TMF Forward Targets
+
+Forward returns are dependent variables and must never appear as model predictors.
+
+General definition:
+
+\[
+R_{t,h}
+=
+\frac{P_{t+h}}{P_t}-1
+\]
+
+Targets:
+
+| Variable | Horizon | Role |
+|---|---:|---|
+| `tmf_fwd_15m` | 15m | Target |
+| `tmf_fwd_30m` | 30m | Target |
+| `tmf_fwd_60m` | 60m | Primary target |
+| `tmf_fwd_120m` | 120m | Target |
+
+These variables are explicitly future information.
+
+They may only appear on the dependent-variable side of predictive models.
+
+---
+
+# 10. TMF Direction Targets
+
+Classification models may use binary targets.
+
+Example:
+
+\[
+Direction_{60m}
+=
+\begin{cases}
+1 & R_{t+60}>0\\
+0 & R_{t+60}\leq0
+\end{cases}
+\]
+
+Variables:
+
+| Variable | Description |
+|---|---|
+| `tmf_dir_15m` | 1 if 15m forward return > 0 |
+| `tmf_dir_30m` | 1 if 30m forward return > 0 |
+| `tmf_dir_60m` | 1 if 60m forward return > 0 |
+| `tmf_dir_120m` | 1 if 120m forward return > 0 |
+
+---
+
+# 11. TMF VWAP Features
+
+Intraday VWAP:
+
+\[
+VWAP_t =
+\frac{\sum Price_iVolume_i}
+{\sum Volume_i}
+\]
+
+Variables:
+
+| Variable | Unit | Description |
+|---|---:|---|
+| `tmf_vwap` | USD | Session VWAP through timestamp t |
+| `tmf_vwap_distance` | % | Distance from VWAP |
+
+VWAP distance:
+
+\[
+VWAPDistance_t=
+\frac{P_t-VWAP_t}{VWAP_t}
+\]
+
+VWAP must only use observations from the current session up to timestamp `t`.
+
+---
+
+# 12. TMF Volume Features
+
+| Variable | Description |
+|---|---|
+| `tmf_volume` | Current interval volume |
+| `tmf_volume_15m` | Trailing 15-minute volume |
+| `tmf_volume_30m` | Trailing 30-minute volume |
+| `tmf_volume_60m` | Trailing 60-minute volume |
+| `tmf_relative_volume` | Volume relative to historical norm for same time of day |
+
+Relative volume should account for strong intraday volume seasonality.
+
+Conceptually:
+
+\[
+RVOL_t =
+\frac{Volume_t}
+{AverageHistoricalVolume_{same\ time}}
+\]
+
+---
+
+# 13. TMF Volatility Features
+
+Potential variables:
+
+| Variable | Description |
+|---|---|
+| `tmf_vol_15m` | Rolling 15-minute realized volatility |
+| `tmf_vol_30m` | Rolling 30-minute realized volatility |
+| `tmf_vol_60m` | Rolling 60-minute realized volatility |
+| `tmf_range_5m` | Current high-low range |
+| `tmf_range_pct_5m` | Current range relative to price |
+
+Rolling statistics must only use historical observations.
+
+---
+
+# 14. 10-Year Treasury Yield
+
+Instrument:
+
+**U.S. 10-Year Treasury**
+
+Primary raw variable:
+
+`ust10y_yield`
+
+Unit:
+
+**Percent yield**
+
+Example:
+
+```text
+4.250
+```
+
+represents:
+
+```text
+4.250%
+```
+
+Derived variables:
+
+| Variable | Unit | Description |
+|---|---:|---|
+| `ust10y_yield` | % | Current yield |
+| `ust10y_chg_5m` | basis points | 5m yield change |
+| `ust10y_chg_15m` | basis points | 15m yield change |
+| `ust10y_chg_30m` | basis points | 30m yield change |
+| `ust10y_chg_60m` | basis points | 60m yield change |
+
+Yield changes should preferably be represented in basis points.
+
+\[
+1bp=0.01\%
+\]
+
+---
+
+# 15. 20-Year Treasury Yield
+
+Instrument:
+
+**U.S. 20-Year Treasury**
+
+Variables:
+
+| Variable | Unit |
+|---|---:|
+| `ust20y_yield` | % |
+| `ust20y_chg_5m` | bp |
+| `ust20y_chg_15m` | bp |
+| `ust20y_chg_30m` | bp |
+| `ust20y_chg_60m` | bp |
+
+Expected relationship with TMF:
+
+**Negative**
+
+This maturity is particularly relevant because TMF targets long-duration Treasury exposure.
+
+---
+
+# 16. 30-Year Treasury Yield
+
+Instrument:
+
+**U.S. 30-Year Treasury**
+
+Variables:
+
+| Variable | Unit |
+|---|---:|
+| `ust30y_yield` | % |
+| `ust30y_chg_5m` | bp |
+| `ust30y_chg_15m` | bp |
+| `ust30y_chg_30m` | bp |
+| `ust30y_chg_60m` | bp |
+
+Expected relationship:
+
+**Negative**
+
+The 30-year yield is expected to be one of the project's most important explanatory variables.
+
+---
+
+# 17. Yield Curve Variables
+
+Initial curve measures:
+
+## 10s30s
+
+\[
+10s30s=Y_{30Y}-Y_{10Y}
+\]
+
+Variables:
+
+| Variable | Unit | Description |
+|---|---:|---|
+| `curve_10s30s` | bp | 30Y minus 10Y |
+| `curve_10s30s_chg_5m` | bp | 5m change |
+| `curve_10s30s_chg_15m` | bp | 15m change |
+| `curve_10s30s_chg_60m` | bp | 60m change |
+
+Additional curve measures may be introduced after initial analysis.
+
+---
+
+# 18. TLT Market Data
+
+Instrument:
+
+**iShares 20+ Year Treasury Bond ETF**
+
+Ticker:
+
+`TLT`
+
+Raw fields:
+
+| Variable | Unit |
+|---|---:|
+| `tlt_open` | USD |
+| `tlt_high` | USD |
+| `tlt_low` | USD |
+| `tlt_close` | USD |
+| `tlt_volume` | shares |
+
+Engineered features:
+
+| Variable | Description |
+|---|---|
+| `tlt_ret_5m` | 5m return |
+| `tlt_ret_15m` | 15m trailing return |
+| `tlt_ret_30m` | 30m trailing return |
+| `tlt_ret_60m` | 60m trailing return |
+| `tlt_relative_volume` | Relative volume |
+| `tlt_vol_60m` | Rolling volatility |
+
+Expected return relationship with TMF:
+
+**Positive**
+
+---
+
+# 19. Treasury Futures
+
+Candidate contracts may include:
+
+- 10-Year Treasury Note futures
+- U.S. Treasury Bond futures
+- Ultra U.S. Treasury Bond futures
+
+Exact contract definitions and continuous-series methodology must be documented before use.
+
+Potential standardized fields:
+
+| Variable | Description |
+|---|---|
+| `zn_ret_5m` | 10Y Treasury futures return |
+| `zn_ret_15m` | 10Y Treasury futures trailing return |
+| `zb_ret_5m` | Treasury Bond futures return |
+| `zb_ret_15m` | Treasury Bond futures trailing return |
+| `ub_ret_5m` | Ultra Treasury Bond futures return |
+| `ub_ret_15m` | Ultra Treasury Bond futures trailing return |
+
+Expected relationship with TMF:
+
+**Positive**
+
+Continuous futures series must avoid artificial returns caused by contract rolls.
+
+---
+
+# 20. Equity Market Data
+
+## SPY
+
+Instrument:
+
+**SPDR S&P 500 ETF Trust**
+
+Variables:
+
+| Variable | Description |
+|---|---|
+| `spy_close` | Current price |
+| `spy_ret_5m` | 5m return |
+| `spy_ret_15m` | 15m return |
+| `spy_ret_30m` | 30m return |
+| `spy_ret_60m` | 60m return |
+
+Expected relationship:
+
+**Empirical / not predetermined**
+
+## QQQ
+
+Variables:
+
+| Variable | Description |
+|---|---|
+| `qqq_close` | Current price |
+| `qqq_ret_5m` | 5m return |
+| `qqq_ret_15m` | 15m return |
+| `qqq_ret_60m` | 60m return |
+
+Expected relationship:
+
+**Empirical / not predetermined**
+
+---
+
+# 21. U.S. Dollar Data
+
+Preferred variable:
+
+Broad U.S. dollar index or suitable liquid market proxy.
+
+Potential fields:
+
+| Variable | Description |
+|---|---|
+| `dxy_level` | Dollar index level |
+| `dxy_ret_5m` | 5m return |
+| `dxy_ret_15m` | 15m return |
+| `dxy_ret_60m` | 60m return |
+
+Expected relationship:
+
+**Not predetermined**
+
+The exact source/instrument will be finalized during data-source selection.
+
+---
+
+# 22. Crude Oil Data
+
+Preferred benchmark:
+
+**WTI crude oil**
+
+Potential fields:
+
+| Variable | Description |
+|---|---|
+| `wti_price` | Current price |
+| `wti_ret_5m` | 5m return |
+| `wti_ret_15m` | 15m return |
+| `wti_ret_60m` | 60m return |
+
+Expected relationship with TMF:
+
+Potentially negative, but empirically tested.
+
+---
+
+# 23. Gold Data
+
+Potential instrument:
+
+Gold futures or a suitable liquid gold-market proxy.
+
+Variables:
+
+| Variable | Description |
+|---|---|
+| `gold_price` | Current price |
+| `gold_ret_5m` | 5m return |
+| `gold_ret_15m` | 15m return |
+| `gold_ret_60m` | 60m return |
+
+Expected relationship:
+
+**Not predetermined**
+
+---
+
+# 24. Interest-Rate Volatility
+
+Preferred measure:
+
+**MOVE Index**, where licensing and historical availability permit.
+
+Potential variables:
+
+| Variable | Description |
+|---|---|
+| `move_level` | Current/latest available MOVE level |
+| `move_chg_1d` | Daily change |
+| `rate_vol_regime` | Derived volatility regime |
+
+Because MOVE may not provide appropriate 5-minute historical observations, it must not be represented as intraday information unless supported by the source.
+
+It may instead serve as a daily regime variable.
+
+---
+
+# 25. Equity Volatility
+
+Potential measure:
+
+**VIX**
+
+Variables:
+
+| Variable | Description |
+|---|---|
+| `vix_level` | Current VIX |
+| `vix_chg_5m` | 5m change where available |
+| `vix_chg_15m` | 15m change |
+| `vix_chg_60m` | 60m change |
+
+This variable may help identify broader risk-off/risk-on regimes.
+
+---
+
+# 26. Macroeconomic Event Dataset
+
+Macroeconomic data require a separate event table rather than ordinary 5-minute market observations.
+
+Recommended raw structure:
+
+| Variable | Description |
+|---|---|
+| `event_id` | Unique event identifier |
+| `event_name` | Economic release |
+| `event_category` | Inflation/employment/growth/etc. |
+| `release_timestamp` | Actual historical release time |
+| `actual` | Released value |
+| `consensus` | Market expectation before release |
+| `previous` | Previously reported value |
+| `revised_previous` | Revised previous value where applicable |
+| `unit` | %, index, thousands, etc. |
+| `source` | Data source |
+
+Potential events:
+
+- CPI
+- Core CPI
+- PCE
+- Core PCE
+- Nonfarm payrolls
+- Unemployment rate
+- Initial jobless claims
+- Retail sales
+- ISM Manufacturing
+- ISM Services
+- JOLTS
+- GDP
+
+---
+
+# 27. Macroeconomic Surprise Variables
+
+Basic surprise:
+
+\[
+Surprise=Actual-Consensus
+\]
+
+Potential fields:
+
+| Variable | Description |
+|---|---|
+| `macro_surprise_raw` | Actual minus consensus |
+| `macro_surprise_z` | Standardized surprise |
+| `macro_positive_surprise` | Positive surprise indicator |
+| `macro_negative_surprise` | Negative surprise indicator |
+
+Standardized surprise:
+
+\[
+Z=
+\frac{Actual-Consensus}
+{\sigma_{historical\ surprises}}
+\]
+
+Historical standard deviation must use only information available prior to the event.
+
+Different macroeconomic releases should not be combined blindly because their units and economic meanings differ.
+
+---
+
+# 28. Federal Reserve Events
+
+Event table fields:
+
+| Variable | Description |
+|---|---|
+| `fed_event_id` | Unique event |
+| `fed_event_type` | FOMC/speech/minutes/etc. |
+| `fed_event_timestamp` | Historical timestamp |
+| `speaker` | Fed official if applicable |
+| `is_fomc` | FOMC indicator |
+| `is_fed_event` | General Fed-event indicator |
+
+Potential events:
+
+- FOMC rate decisions
+- FOMC statements
+- FOMC minutes
+- Scheduled Fed speeches
+
+Textual sentiment analysis is outside the initial project scope but may be considered later.
+
+---
+
+# 29. Treasury Auction Events
+
+Potential auction fields:
+
+| Variable | Description |
+|---|---|
+| `auction_timestamp` | Auction/result timestamp |
+| `auction_maturity` | Treasury maturity |
+| `auction_size` | Offering size |
+| `high_yield` | Auction high yield |
+| `bid_to_cover` | Bid-to-cover ratio |
+| `indirect_pct` | Indirect bidder percentage |
+| `direct_pct` | Direct bidder percentage |
+
+Auction surprise features may be investigated later after reliable historical data are available.
+
+---
+
+# 30. Event Proximity Features
+
+For each 5-minute market observation, potential variables include:
+
+| Variable | Description |
+|---|---|
+| `minutes_since_macro_event` | Minutes since most recent event |
+| `minutes_until_macro_event` | Minutes until next scheduled event |
+| `post_event_15m` | Within 15m after release |
+| `post_event_30m` | Within 30m after release |
+| `post_event_60m` | Within 60m after release |
+| `pre_event_15m` | Within 15m before scheduled release |
+| `is_event_window` | Event-window indicator |
+
+Future event **schedules** may be used before an event if the schedule was publicly known.
+
+Future event **results** may never be used.
+
+---
+
+# 31. Time-of-Day Features
+
+Potential variables:
+
+| Variable | Description |
+|---|---|
+| `hour` | Hour of session |
+| `minute` | Minute |
+| `minutes_from_open` | Minutes after 09:30 |
+| `minutes_to_close` | Minutes until 16:00 |
+| `opening_30m` | First 30m indicator |
+| `morning_session` | Morning indicator |
+| `midday_session` | Midday indicator |
+| `power_hour` | Final hour indicator |
+
+Time-of-day variables may capture intraday liquidity and volatility patterns.
+
+---
+
+# 32. Market Regime Variables
+
+Potential regimes may eventually include:
+
+## Rate Regime
+
+Examples:
+
+- rising yields
+- falling yields
+- stable yields
+
+## Rate Volatility Regime
+
+Examples:
+
+- low
+- medium
+- high
+
+## Equity Volatility Regime
+
+Examples:
+
+- low VIX
+- normal VIX
+- elevated VIX
+
+## Trend Regime
+
+Examples:
+
+- Treasury uptrend
+- Treasury downtrend
+- range-bound
+
+Regime definitions must be based on explicit quantitative rules and calculated using historical information only.
+
+---
+
+# 33. Normalized Features
+
+Some variables may be transformed into standardized values:
+
+\[
+Z_t=
+\frac{x_t-\mu}{\sigma}
+\]
+
+Potential normalized variables:
+
+```text
+ust30y_chg_15m_z
+ust10y_chg_15m_z
+tlt_ret_15m_z
+tmf_ret_15m_z
+tmf_volume_z
+tmf_vwap_distance_z
+wti_ret_15m_z
+dxy_ret_15m_z
+```
+
+Scaling parameters must be estimated from training data only during model validation.
+
+---
+
+# 34. Missing Data Indicators
+
+Missingness itself may contain information and should be documented.
+
+Potential fields:
+
+| Variable | Description |
+|---|---|
+| `missing_ust10y` | Missing 10Y observation |
+| `missing_ust20y` | Missing 20Y observation |
+| `missing_ust30y` | Missing 30Y observation |
+| `missing_tlt` | Missing TLT observation |
+| `missing_dxy` | Missing dollar observation |
+| `missing_wti` | Missing oil observation |
+
+Missing values should not automatically be replaced.
+
+The reason for missingness should be investigated first.
+
+---
+
+# 35. Data Quality Flags
+
+Recommended fields:
+
+| Variable | Description |
+|---|---|
+| `duplicate_timestamp` | Duplicate detected |
+| `invalid_price` | Invalid price observation |
+| `invalid_yield` | Invalid yield observation |
+| `missing_interval` | Expected interval missing |
+| `stale_value` | Value unchanged beyond defined threshold |
+| `outlier_flag` | Observation selected for review |
+| `market_holiday` | Holiday indicator |
+| `early_close` | Early-close indicator |
+
+An outlier flag does **not** automatically mean an observation should be removed.
+
+Large legitimate market moves are potentially valuable observations.
+
+---
+
+# 36. Source Metadata
+
+Every raw dataset should record its origin.
+
+Recommended metadata:
+
+| Variable | Description |
+|---|---|
+| `source_name` | Provider |
+| `source_symbol` | Provider-specific symbol |
+| `download_timestamp` | Acquisition timestamp |
+| `source_frequency` | Original frequency |
+| `source_timezone` | Source timezone |
+| `adjusted` | Whether price data are adjusted |
+| `dataset_version` | Optional version identifier |
+
+This improves reproducibility.
+
+---
+
+# 37. Initial Modeling Table
+
+The first modeling table should approximately contain:
+
+```text
+timestamp
+
+tmf_close
+tmf_ret_5m
+tmf_ret_15m
+tmf_ret_30m
+tmf_ret_60m
+tmf_vwap_distance
+tmf_relative_volume
+tmf_vol_60m
+
+ust10y_yield
+ust10y_chg_5m
+ust10y_chg_15m
+ust10y_chg_60m
+
+ust20y_yield
+ust20y_chg_5m
+ust20y_chg_15m
+ust20y_chg_60m
+
+ust30y_yield
+ust30y_chg_5m
+ust30y_chg_15m
+ust30y_chg_60m
+
+curve_10s30s
+curve_10s30s_chg_15m
+
+tlt_ret_5m
+tlt_ret_15m
+tlt_ret_60m
+
+dxy_ret_15m
+spy_ret_15m
+qqq_ret_15m
+wti_ret_15m
+gold_ret_15m
+
+is_macro_event_day
+is_fed_event
+post_event_15m
+post_event_60m
+macro_surprise_z
+
+minutes_from_open
+
+tmf_fwd_15m
+tmf_fwd_30m
+tmf_fwd_60m
+tmf_fwd_120m
+```
+
+This is an initial specification and will evolve as data quality and availability are evaluated.
+
+---
+
+# 38. Minimum Viable Dataset
+
+The first version of the project does not require every candidate variable.
+
+The minimum viable dataset should contain:
+
+### Required
+
+```text
+TMF OHLCV
+TLT OHLCV
+10Y Treasury yield
+20Y Treasury yield
+30Y Treasury yield
+timestamps
+```
+
+### Strongly Preferred
+
+```text
+Treasury futures
+SPY
+DXY or dollar proxy
+WTI
+Gold
+VIX
+```
+
+### Phase Two
+
+```text
+MOVE
+macroeconomic actual/consensus data
+Federal Reserve events
+Treasury auctions
+additional market-regime variables
+```
+
+This staged approach prevents data acquisition complexity from blocking the initial analysis.
+
+---
+
+# 39. Source Selection Requirements
+
+A source should be evaluated using:
+
+1. Historical depth
+2. Intraday frequency
+3. Timestamp quality
+4. Data accuracy
+5. Adjustment methodology
+6. API reliability
+7. Rate limits
+8. Cost
+9. Licensing restrictions
+10. Reproducibility
+
+Free data should not automatically be preferred if it produces unreliable historical timestamps.
+
+Likewise, paid data should not automatically be assumed superior without evaluating its methodology.
+
+---
+
+# 40. Leakage Classification
+
+Each field should eventually be assigned one of three classifications.
+
+## SAFE
+
+Known at timestamp `t`.
+
+Example:
+
+```text
+ust30y_chg_15m
+```
+
+assuming the underlying observations existed at or before `t`.
+
+## TARGET ONLY
+
+Contains future information and may only be used as a dependent variable.
+
+Example:
+
+```text
+tmf_fwd_60m
+```
+
+## CONDITIONAL
+
+Safe only under specific timing assumptions.
+
+Example:
+
+```text
+macro_consensus
+```
+
+A consensus forecast is safe if it represents the consensus available before the release.
+
+A subsequently revised historical consensus database could create leakage if revisions are not timestamped.
+
+---
+
+# 41. Initial Variable-to-Hypothesis Mapping
+
+| Variable Group | Hypotheses |
+|---|---|
+| 30Y yield | H1, H4 |
+| 20Y yield | H2 |
+| 10Y yield | H3, H4 |
+| Yield curve | H5 |
+| TLT | H6 |
+| Treasury futures | H7 |
+| Macro surprises | H8 |
+| Fed events | H9 |
+| Rate volatility | H10 |
+| Dollar | H11 |
+| SPY / QQQ | H12 |
+| WTI | H13 |
+| Gold | H14 |
+| TMF lagged returns | H15 |
+| VWAP distance | H16 |
+| Relative volume | H17 |
+| Time of day | H18 |
+| Event indicators | H19 |
+| All predictor groups | H20 |
+
+---
+
+# 42. Initial Data Priority
+
+Data acquisition should proceed in the following order:
+
+```text
+1. TMF
+2. TLT
+3. 10Y Treasury
+4. 20Y Treasury
+5. 30Y Treasury
+6. Treasury futures
+7. SPY / QQQ
+8. Dollar
+9. WTI
+10. Gold
+11. VIX
+12. Macroeconomic events
+13. Fed events
+14. MOVE / rate-volatility regime
+15. Treasury auctions
+```
+
+The first milestone is not to collect every possible variable.
+
+The first milestone is to create a **clean and synchronized core Treasury/TMF dataset**.
+
+---
+
+# 43. Data Acceptance Criteria
+
+Before a dataset enters the modeling layer, it should pass the following checks:
+
+- Timestamp format validated
+- Timezone identified
+- Duplicate observations identified
+- Missing observations quantified
+- Trading-session coverage measured
+- Units verified
+- Invalid values investigated
+- Corporate actions handled where relevant
+- Source methodology documented
+- Future-information risk evaluated
+- Alignment methodology documented
+
+A dataset that fails these checks should not be used for predictive modeling until the issue is resolved.
+
+---
+
+# 44. Current Status
+
+| Dataset | Status |
+|---|---|
+| TMF | Not acquired |
+| TLT | Not acquired |
+| 10Y Treasury | Not acquired |
+| 20Y Treasury | Not acquired |
+| 30Y Treasury | Not acquired |
+| Treasury futures | Not acquired |
+| SPY | Not acquired |
+| QQQ | Not acquired |
+| Dollar | Not acquired |
+| WTI | Not acquired |
+| Gold | Not acquired |
+| VIX | Not acquired |
+| MOVE | Not acquired |
+| Macroeconomic events | Not acquired |
+| Fed events | Not acquired |
+| Treasury auctions | Not acquired |
+
+---
+
+# 45. Next Step
+
+With the research question, hypothesis framework, and data dictionary defined, the next phase is:
+
+> **Data-source selection and acquisition architecture.**
+
+For each required dataset, the project must identify:
+
+- provider
+- API or download method
+- historical coverage
+- available frequency
+- cost
+- rate limits
+- timestamp methodology
+- symbol
+- licensing constraints
+- storage format
+
+Only after those sources are selected should the automated collection pipeline be implemented.
