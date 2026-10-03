@@ -1,0 +1,25 @@
+# Core data analysis
+numpy
+pandas
+scipy
+
+# Statistical modeling
+statsmodels
+
+# Machine learning
+scikit-learn
+
+# Visualization
+matplotlib
+
+# HTTP / API access
+requests
+
+# Environment configuration
+python-dotenv
+
+# Configuration / validation
+pydantic
+
+# Testing
+pytest
