@@ -1,0 +1,19 @@
+Strategy report
+Symbol: TMF
+Work Time: 10/3/25 - 7/8/26
+
+
+Id;Strategy;Side;Amount;Price;Date/Time;Trade P/L;P/L;Position;
+1;TMF_Directional_Strategy_V1(LONG +4/+5);Buy to Open;100.0;$40.93;10/3/25;;($42.00);100.0;
+2;TMF_Directional_Strategy_V1(EXIT -4/-5);Sell to Close;-100.0;$40.77;11/6/25;($16.00);($16.00);0.0;
+3;TMF_Directional_Strategy_V1(LONG +4/+5);Buy to Open;100.0;$38.30;2/11/26;;($16.00);100.0;
+4;TMF_Directional_Strategy_V1(EXIT -4/-5);Sell to Close;-100.0;$36.89;3/12/26;($141.00);($157.00);0.0;
+5;TMF_Directional_Strategy_V1(LONG +4/+5);Buy to Open;100.0;$35.08;6/12/26;;($148.00);100.0;
+6;TMF_Directional_Strategy_V1(EXIT -4/-5);Sell to Close;-100.0;$33.26;7/8/26;($182.00);($339.00);0.0;
+
+
+Max trade P/L: ($16.00);
+
+Total P/L: ($339.00);
+
+Total order(s): 3;

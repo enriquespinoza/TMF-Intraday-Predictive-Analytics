@@ -138,6 +138,10 @@ desktop.ini
 backtests/results/*
 !backtests/results/.gitkeep
 
+# Preserve reproducible backtest result CSVs
+
+!backtests/results/*.csv
+
 # =========================
 # Generated Reports
 # =========================
