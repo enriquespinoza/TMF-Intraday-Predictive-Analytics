@@ -21,6 +21,7 @@ def main() -> None:
 
     print("Loading TMF market data...")
 
+
     tmf_data = load_ohlcv_csv(INPUT_FILE)
 
     print(f"Loaded {len(tmf_data):,} observations.")

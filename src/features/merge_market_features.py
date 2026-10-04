@@ -80,20 +80,7 @@ def align_treasury_to_tmf(
     )
 
     # ---------------------------------------------------------
-    # Remove rows where no Treasury yield observation exists.
-    #
-    # This prevents missing FRED observations from replacing
-    # valid prior Treasury information during the as-of merge.
-    # ---------------------------------------------------------
-
-    treasury_data = treasury_data.dropna(
-        subset=[
-            "yield_2y",
-            "yield_5y",
-            "yield_10y",
-            "yield_30y",
-        ]
-    )
+ 
 
     # ---------------------------------------------------------
     # Sort before as-of merge
