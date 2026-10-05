@@ -36,6 +36,11 @@ OUTPUT_FILE = Path(
 PREDICTIONS_FILE = Path(
     "reports/TMF_directional_predictions.csv"
 )
+# ---------------------------------------------------------
+# Frozen Technical Baseline V1
+# ---------------------------------------------------------
+
+# Do not modify this feature set during V2A research.
 SELECTED_TECHNICAL_FEATURES = [
     "return_5d",
     "rsi_14",
@@ -45,6 +50,11 @@ SELECTED_TECHNICAL_FEATURES = [
 ]
 
 
+# ---------------------------------------------------------
+# Existing V1 Treasury benchmark
+# ---------------------------------------------------------
+
+# Preserved so historical V1 results remain reproducible.
 SELECTED_TREASURY_FEATURES = [
     "yield_10y",
     "yield_30y",
@@ -57,16 +67,51 @@ SELECTED_TREASURY_FEATURES = [
 ]
 
 
+# ---------------------------------------------------------
+# V2A structural yield-curve challenger
+# ---------------------------------------------------------
+
+# Pre-specified before evaluating V2A predictive results.
+V2A_CURVE_FEATURES = [
+    "curve_level",
+    "curve_slope_30y_3m_bp",
+    "curve_curvature_5y_bp",
+    "curve_level_change_5d_bp",
+    "curve_slope_change_5d_bp",
+    "curve_curvature_change_5d_bp",
+    "curve_level_volatility_20d",
+    "curve_slope_volatility_20d",
+    "curve_curvature_volatility_20d",
+]
+
+
+# ---------------------------------------------------------
+# Model feature sets
+# ---------------------------------------------------------
+
 MODEL_FEATURES = {
+    # Frozen V1 benchmark
     "technical_logistic":
         SELECTED_TECHNICAL_FEATURES,
 
+    # Existing V1 Treasury benchmark
     "treasury_logistic":
         SELECTED_TREASURY_FEATURES,
 
+    # Existing V1 combined benchmark
     "combined_logistic": (
         SELECTED_TECHNICAL_FEATURES
         + SELECTED_TREASURY_FEATURES
+    ),
+
+    # V2A structural Treasury curve challenger
+    "v2a_curve_logistic":
+        V2A_CURVE_FEATURES,
+
+    # Technical V1 + V2A challenger
+    "technical_v2a_curve_logistic": (
+        SELECTED_TECHNICAL_FEATURES
+        + V2A_CURVE_FEATURES
     ),
 }
 

@@ -255,3 +255,78 @@ development.
 
 It will be evaluated only after the model architecture and feature-selection
 process have been finalized.
+
+---
+
+## V2A Experimental Results
+
+V2A was evaluated using the pre-specified purged expanding
+walk-forward validation framework covering the 2023, 2024, and
+2025 validation periods.
+
+The 2026 holdout was not used during model evaluation or feature
+selection.
+
+### Average Walk-Forward Performance
+
+| Model | ROC AUC | Brier Score | Log Loss | Accuracy | Balanced Accuracy |
+|---|---:|---:|---:|---:|---:|
+| Base Rate | 0.5000 | 0.2503 | 0.6940 | 0.5440 | 0.5000 |
+| Technical Baseline V1 | 0.5554 | 0.2579 | 0.7114 | 0.5508 | 0.5088 |
+| Treasury V1 | 0.5566 | 0.2656 | 0.7346 | 0.5090 | 0.5287 |
+| Combined V1 | 0.5614 | 0.2729 | 0.7497 | 0.4873 | 0.5127 |
+| V2A Curve | 0.5402 | 0.2825 | 0.7710 | 0.5034 | 0.5305 |
+| Technical + V2A Curve | 0.5159 | 0.2897 | 0.8094 | 0.4940 | 0.5200 |
+
+### V2A Curve ROC AUC by Validation Fold
+
+| Validation Fold | V2A Curve AUC |
+|---|---:|
+| 2023 | 0.5635 |
+| 2024 | 0.5325 |
+| 2025 | 0.5245 |
+
+The V2A curve-only model produced ROC AUC above 0.50 in all three
+validation folds, indicating modest ranking information. However,
+performance weakened across the validation periods and did not
+outperform the frozen Technical Baseline V1 on average.
+
+### Incremental V2A Test
+
+The primary V2A test was whether structural yield-curve factors added
+predictive information to Technical Baseline V1.
+
+| Validation Fold | Technical V1 AUC | Technical + V2A AUC | Difference |
+|---|---:|---:|---:|
+| 2023 | 0.5143 | 0.5019 | -0.0124 |
+| 2024 | 0.5816 | 0.5158 | -0.0658 |
+| 2025 | 0.5702 | 0.5299 | -0.0403 |
+| Average | 0.5554 | 0.5159 | -0.0395 |
+
+Adding the V2A structural curve factors reduced ROC AUC in every
+validation fold.
+
+Probability-quality metrics also deteriorated relative to Technical
+Baseline V1:
+
+- Brier score increased from 0.2579 to 0.2897.
+- Log loss increased from 0.7114 to 0.8094.
+
+### Decision
+
+**V2A result:** Simple empirical level/slope/curvature representation
+did not add incremental predictive value to Technical Baseline V1.
+
+Curve-only ranking remained modestly above random across all three
+folds, but combining V2A with technical features degraded ROC AUC,
+Brier score, and log loss.
+
+**V2A is rejected as the primary Treasury representation.**
+
+The V2A feature set will not be modified or optimized against the same
+2023-2025 validation folds in response to these results.
+
+The next research stage is V2B, which will evaluate a fitted
+Nelson-Siegel term-structure representation while preserving the same
+walk-forward validation methodology and keeping the 2026 holdout
+locked.
