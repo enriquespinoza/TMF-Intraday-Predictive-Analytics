@@ -171,6 +171,8 @@ def add_model_features(
     ).astype(int)
 
     return data
+
+
 def build_logistic_model() -> Pipeline:
     """Build standardized logistic regression pipeline."""
 
