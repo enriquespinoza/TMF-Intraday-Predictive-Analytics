@@ -11,9 +11,15 @@ RAW_DATA_DIR = Path("data/raw")
 OUTPUT_FILE = RAW_DATA_DIR / "treasury_yields_daily.csv"
 
 SERIES = {
+    "DGS3MO": "yield_3m",
+    "DGS6MO": "yield_6m",
+    "DGS1": "yield_1y",
     "DGS2": "yield_2y",
+    "DGS3": "yield_3y",
     "DGS5": "yield_5y",
+    "DGS7": "yield_7y",
     "DGS10": "yield_10y",
+    "DGS20": "yield_20y",
     "DGS30": "yield_30y",
 }
 
