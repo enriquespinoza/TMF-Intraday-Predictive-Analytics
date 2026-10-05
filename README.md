@@ -630,3 +630,11 @@ Candidate relationships will be tested rather than assumed.
 This repository is a quantitative research and educational project.
 
 Statistical relationships, forecasts, model outputs, and backtests do not guarantee future market performance and should not be interpreted as investment advice.
+
+## Research Progress
+
+### Treasury Yield-Curve Research
+
+- **V1:** Selected Treasury yield and regime features established the initial macro benchmark.
+- **V2A:** Empirical level, slope, and curvature factors were evaluated using purged walk-forward validation. The V2A curve model achieved a 0.540 average ROC AUC, while adding V2A factors to Technical Baseline V1 reduced AUC from 0.555 to 0.516. V2A was therefore rejected as the primary Treasury representation.
+- **V2B:** Next stage will evaluate Nelson-Siegel yield-curve factors.

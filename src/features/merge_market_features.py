@@ -8,6 +8,9 @@ from src.features.treasury_features import (
     build_treasury_features,
 )
 
+from src.features.nelson_siegel_features import (
+    build_nelson_siegel_features,
+)
 
 TMF_FILE = Path(
     "data/features/TMF_1d_technical_features.csv"
@@ -71,20 +74,51 @@ def align_treasury_to_tmf(
         treasury_data["market_date"]
     )
 
-    # ---------------------------------------------------------
-    # Treasury features
+        # ---------------------------------------------------------
+    # Treasury V2A features
     # ---------------------------------------------------------
 
-    treasury_data = build_treasury_features(
+    treasury_v2a = build_treasury_features(
         treasury_data
     )
 
     # ---------------------------------------------------------
- 
+    # Treasury V2B Nelson-Siegel features
+    # ---------------------------------------------------------
+
+    treasury_v2b = build_nelson_siegel_features(
+        treasury_data
+    )
+
+    v2b_feature_columns = [
+        "market_date",
+        "ns_beta0_level",
+        "ns_beta1_slope",
+        "ns_beta2_curvature",
+        "ns_fit_rmse",
+        "ns_beta0_level_change_1d_bp",
+        "ns_beta0_level_change_5d_bp",
+        "ns_beta0_level_change_20d_bp",
+        "ns_beta1_slope_change_1d_bp",
+        "ns_beta1_slope_change_5d_bp",
+        "ns_beta1_slope_change_20d_bp",
+        "ns_beta2_curvature_change_1d_bp",
+        "ns_beta2_curvature_change_5d_bp",
+        "ns_beta2_curvature_change_20d_bp",
+        "ns_beta0_level_volatility_20d",
+        "ns_beta1_slope_volatility_20d",
+        "ns_beta2_curvature_volatility_20d",
+    ]
+
+    treasury_data = treasury_v2a.merge(
+        treasury_v2b[v2b_feature_columns],
+        on="market_date",
+        how="left",
+        validate="one_to_one",
+    )
 
     # ---------------------------------------------------------
     # Sort before as-of merge
-    # ---------------------------------------------------------
 
     tmf_data = tmf_data.sort_values(
         "market_date"

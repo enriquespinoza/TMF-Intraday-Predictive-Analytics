@@ -5,6 +5,7 @@ from src.models.directional_classifier import (
     MODEL_FEATURES,
     SELECTED_TECHNICAL_FEATURES,
     V2A_CURVE_FEATURES,
+    V2B_NELSON_SIEGEL_FEATURES,
     add_directional_target,
     build_logistic_model,
     calculate_classification_metrics,
@@ -168,7 +169,7 @@ def test_classification_metrics_are_calculated():
     assert metrics["accuracy"] == 1.0
 
 def test_walk_forward_predictions_include_v2a_models():
-    """Walk-forward output must include all V1 and V2A probabilities."""
+    """Walk-forward output must include all V1, V2A, and V2B probabilities."""
 
     from src.models.directional_classifier import (
         generate_walk_forward_predictions,
@@ -271,6 +272,38 @@ def test_walk_forward_predictions_include_v2a_models():
 
             "curve_curvature_volatility_20d":
                 rng.uniform(1, 20, rows),
+
+            # V2B Nelson-Siegel curve
+            "ns_beta0_level":
+               rng.uniform(2.0, 6.0, rows),
+            
+            # V2B Nelson-Siegel curve
+            "ns_beta0_level":
+                rng.uniform(2.0, 6.0, rows),
+
+            "ns_beta1_slope":
+                rng.normal(0, 1.5, rows),
+
+            "ns_beta2_curvature":
+                rng.normal(-1.0, 2.0, rows),
+
+            "ns_beta0_level_change_5d_bp":
+                rng.normal(0, 15, rows),
+
+            "ns_beta1_slope_change_5d_bp":
+                rng.normal(0, 20, rows),
+
+            "ns_beta2_curvature_change_5d_bp":
+                rng.normal(0, 40, rows),
+
+            "ns_beta0_level_volatility_20d":
+                rng.uniform(2, 12, rows),
+
+            "ns_beta1_slope_volatility_20d":
+                rng.uniform(2, 16, rows),
+
+            "ns_beta2_curvature_volatility_20d":
+                rng.uniform(5, 70, rows),
         }
     )
 
@@ -305,4 +338,65 @@ def test_walk_forward_predictions_include_v2a_models():
     assert (
         predictions["market_date"].max()
         < pd.Timestamp("2026-01-01")
+    )
+
+def test_v2b_nelson_siegel_feature_set_is_prespecified():
+
+    expected = [
+        "ns_beta0_level",
+        "ns_beta1_slope",
+        "ns_beta2_curvature",
+        "ns_beta0_level_change_5d_bp",
+        "ns_beta1_slope_change_5d_bp",
+        "ns_beta2_curvature_change_5d_bp",
+        "ns_beta0_level_volatility_20d",
+        "ns_beta1_slope_volatility_20d",
+        "ns_beta2_curvature_volatility_20d",
+    ]
+
+    assert (
+        V2B_NELSON_SIEGEL_FEATURES
+        == expected
+    )
+
+
+def test_v2b_model_uses_only_nelson_siegel_features():
+
+    assert (
+        MODEL_FEATURES[
+            "v2b_nelson_siegel_logistic"
+        ]
+        == V2B_NELSON_SIEGEL_FEATURES
+    )
+
+
+def test_technical_v2b_model_combines_exact_feature_sets():
+
+    expected = (
+        SELECTED_TECHNICAL_FEATURES
+        + V2B_NELSON_SIEGEL_FEATURES
+    )
+
+    assert (
+        MODEL_FEATURES[
+            "technical_v2b_nelson_siegel_logistic"
+        ]
+        == expected
+    )
+
+
+def test_v2b_does_not_modify_v1_or_v2a_models():
+
+    assert (
+        MODEL_FEATURES[
+            "technical_logistic"
+        ]
+        == SELECTED_TECHNICAL_FEATURES
+    )
+
+    assert (
+        MODEL_FEATURES[
+            "v2a_curve_logistic"
+        ]
+        == V2A_CURVE_FEATURES
     )

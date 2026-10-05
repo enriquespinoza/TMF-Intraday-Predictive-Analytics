@@ -330,3 +330,114 @@ The next research stage is V2B, which will evaluate a fitted
 Nelson-Siegel term-structure representation while preserving the same
 walk-forward validation methodology and keeping the 2026 holdout
 locked.
+
+# TMF Treasury Curve Research
+
+## Research Objective
+
+Evaluate whether Treasury yield-curve information provides incremental
+predictive value for TMF 5-day direction beyond the frozen Technical
+Baseline V1.
+
+The 2026 period remains locked as the final out-of-sample holdout.
+
+---
+
+## V2A — Empirical Yield-Curve Factors
+
+### Feature Set
+
+V2A represents the Treasury curve using empirical level, slope, and
+curvature factors, along with 5-day changes and 20-day volatility.
+
+### Result
+
+V2A was rejected as the primary Treasury representation.
+
+The standalone V2A curve model produced an average validation ROC AUC
+of 0.5402. Combining V2A with Technical V1 reduced average ROC AUC to
+0.5159.
+
+The V2A feature set was frozen after evaluation and was not tuned using
+the validation results.
+
+---
+
+## V2B — Nelson-Siegel Yield-Curve Factors
+
+### Method
+
+V2B fits a Nelson-Siegel yield curve to the Treasury maturity grid:
+
+- 3-month
+- 6-month
+- 1-year
+- 2-year
+- 3-year
+- 5-year
+- 7-year
+- 10-year
+- 20-year
+- 30-year
+
+The predictive feature set consists of:
+
+- Nelson-Siegel level (β0)
+- Nelson-Siegel slope (β1)
+- Nelson-Siegel curvature (β2)
+- 5-day changes in β0, β1, and β2
+- 20-day volatility of changes in β0, β1, and β2
+
+`ns_fit_rmse` is retained as a curve-fit diagnostic and is not included
+in the initial predictive feature set.
+
+### Validation Design
+
+V2B uses the same frozen methodology as the previous experiments:
+
+- Target: 5-day forward TMF direction
+- Model: Logistic Regression
+- Purged expanding walk-forward validation
+- Validation folds: 2023, 2024, and 2025
+- 2026 remains locked
+- No post-result feature, lambda, regularization, or threshold tuning
+
+### Results
+
+| Model | ROC AUC | Brier Score | Log Loss |
+|---|---:|---:|---:|
+| Technical V1 | 0.5554 | 0.2579 | 0.7114 |
+| Combined V1 | 0.5614 | 0.2729 | 0.7497 |
+| V2A Curve | 0.5402 | 0.2825 | 0.7710 |
+| Technical + V2A | 0.5159 | 0.2897 | 0.8094 |
+| V2B Nelson-Siegel | 0.5408 | 0.2811 | 0.7684 |
+| Technical + V2B | 0.5505 | 0.2796 | 0.7678 |
+
+### Decision
+
+**V2B Nelson–Siegel: rejected as a standalone replacement for Technical
+V1, but retained as a candidate macro/regime representation.**
+
+Nelson–Siegel improved substantially over V2A when combined with
+technical features (AUC 0.5505 vs. 0.5159) but failed to improve upon
+the frozen Technical V1 benchmark (0.5554) or Combined V1 (0.5614).
+
+Performance was unstable across folds, indicating that yield-curve
+factors may have conditional rather than unconditional predictive
+value.
+
+No V2B feature, lambda, regularization, or threshold tuning will be
+performed using these validation folds.
+
+---
+
+## Research Status
+
+| Version | Representation | Decision |
+|---|---|---|
+| V1 | Technical baseline | Frozen benchmark |
+| V2A | Empirical Treasury curve | Rejected as primary model |
+| V2B | Nelson-Siegel Treasury curve | Retain for regime/context layer |
+| V2.4 | Retail-sales macro features | Next experiment |
+
+The 2026 holdout remains locked.

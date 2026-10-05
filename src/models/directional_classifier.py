@@ -54,7 +54,17 @@ SELECTED_TECHNICAL_FEATURES = [
 # Existing V1 Treasury benchmark
 # ---------------------------------------------------------
 
-# Preserved so historical V1 results remain reproducible.
+# Existing V1 technical features
+SELECTED_TECHNICAL_FEATURES = [
+    "return_5d",
+    "rsi_14",
+    "volatility_20d",
+    "relative_volume",
+    "distance_from_20d_high",
+]
+
+
+# Existing V1 Treasury features
 SELECTED_TREASURY_FEATURES = [
     "yield_10y",
     "yield_30y",
@@ -67,11 +77,7 @@ SELECTED_TREASURY_FEATURES = [
 ]
 
 
-# ---------------------------------------------------------
-# V2A structural yield-curve challenger
-# ---------------------------------------------------------
-
-# Pre-specified before evaluating V2A predictive results.
+# Existing V2A empirical curve features
 V2A_CURVE_FEATURES = [
     "curve_level",
     "curve_slope_30y_3m_bp",
@@ -85,34 +91,48 @@ V2A_CURVE_FEATURES = [
 ]
 
 
-# ---------------------------------------------------------
-# Model feature sets
-# ---------------------------------------------------------
+# NEW V2B Nelson-Siegel features
+V2B_NELSON_SIEGEL_FEATURES = [
+    "ns_beta0_level",
+    "ns_beta1_slope",
+    "ns_beta2_curvature",
+    "ns_beta0_level_change_5d_bp",
+    "ns_beta1_slope_change_5d_bp",
+    "ns_beta2_curvature_change_5d_bp",
+    "ns_beta0_level_volatility_20d",
+    "ns_beta1_slope_volatility_20d",
+    "ns_beta2_curvature_volatility_20d",
+]
 
+
+# Model definitions
 MODEL_FEATURES = {
-    # Frozen V1 benchmark
+    # Frozen V1 benchmarks
     "technical_logistic":
         SELECTED_TECHNICAL_FEATURES,
 
-    # Existing V1 Treasury benchmark
     "treasury_logistic":
         SELECTED_TREASURY_FEATURES,
 
-    # Existing V1 combined benchmark
-    "combined_logistic": (
+    "combined_logistic":
         SELECTED_TECHNICAL_FEATURES
-        + SELECTED_TREASURY_FEATURES
-    ),
+        + SELECTED_TREASURY_FEATURES,
 
-    # V2A structural Treasury curve challenger
+    # V2A empirical curve challengers
     "v2a_curve_logistic":
         V2A_CURVE_FEATURES,
 
-    # Technical V1 + V2A challenger
-    "technical_v2a_curve_logistic": (
+    "technical_v2a_curve_logistic":
         SELECTED_TECHNICAL_FEATURES
-        + V2A_CURVE_FEATURES
-    ),
+        + V2A_CURVE_FEATURES,
+
+    # V2B Nelson-Siegel challengers
+    "v2b_nelson_siegel_logistic":
+        V2B_NELSON_SIEGEL_FEATURES,
+
+    "technical_v2b_nelson_siegel_logistic":
+        SELECTED_TECHNICAL_FEATURES
+        + V2B_NELSON_SIEGEL_FEATURES,
 }
 
 def add_directional_target(

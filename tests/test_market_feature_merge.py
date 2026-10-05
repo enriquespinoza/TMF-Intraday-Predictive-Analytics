@@ -276,8 +276,6 @@ def test_previous_v2_curve_features_are_used():
         jan_5["treasury_observation_date"]
         == pd.Timestamp("2026-01-02")
     )
-
-
 def test_future_v2_curve_features_not_used():
 
     tmf = pd.DataFrame(
@@ -334,6 +332,9 @@ def test_future_v2_curve_features_not_used():
         treasury,
     )
 
+    # The only Treasury observation occurs after
+    # the TMF observation. V2A features must not
+    # leak backward from Jan. 6 into Jan. 5.
     assert pd.isna(
         result[
             "curve_level"
@@ -349,5 +350,198 @@ def test_future_v2_curve_features_not_used():
     assert pd.isna(
         result[
             "curve_curvature_5y_bp"
+        ].iloc[0]
+    )
+
+def test_v2b_nelson_siegel_features_are_aligned():
+
+    tmf = create_tmf_sample()
+    treasury = create_treasury_sample()
+
+    result = align_treasury_to_tmf(
+        tmf,
+        treasury,
+    )
+
+    expected_columns = {
+        "ns_beta0_level",
+        "ns_beta1_slope",
+        "ns_beta2_curvature",
+        "ns_fit_rmse",
+        "ns_beta0_level_change_5d_bp",
+        "ns_beta1_slope_change_5d_bp",
+        "ns_beta2_curvature_change_5d_bp",
+        "ns_beta0_level_volatility_20d",
+        "ns_beta1_slope_volatility_20d",
+        "ns_beta2_curvature_volatility_20d",
+    }
+
+    assert expected_columns.issubset(
+        result.columns
+    )
+
+    first = result.iloc[0]
+
+    # The fitted Nelson-Siegel factors should exist
+    # for the Jan. 2 Treasury curve.
+    assert pd.notna(
+        first["ns_beta0_level"]
+    )
+
+    assert pd.notna(
+        first["ns_beta1_slope"]
+    )
+
+    assert pd.notna(
+        first["ns_beta2_curvature"]
+    )
+
+    assert pd.notna(
+        first["ns_fit_rmse"]
+    )
+
+
+def test_previous_v2b_nelson_siegel_features_are_used():
+
+    tmf = create_tmf_sample()
+    treasury = create_treasury_sample()
+
+    result = align_treasury_to_tmf(
+        tmf,
+        treasury,
+    )
+
+    jan_2 = result[
+        result["market_date"]
+        == pd.Timestamp("2026-01-02")
+    ].iloc[0]
+
+    jan_5 = result[
+        result["market_date"]
+        == pd.Timestamp("2026-01-05")
+    ].iloc[0]
+
+    # Jan. 5 has no Treasury observation.
+    # It must inherit the Nelson-Siegel factors
+    # calculated from the Jan. 2 Treasury curve.
+    assert np.isclose(
+        jan_5["ns_beta0_level"],
+        jan_2["ns_beta0_level"],
+    )
+
+    assert np.isclose(
+        jan_5["ns_beta1_slope"],
+        jan_2["ns_beta1_slope"],
+    )
+
+    assert np.isclose(
+        jan_5["ns_beta2_curvature"],
+        jan_2["ns_beta2_curvature"],
+    )
+
+    assert np.isclose(
+        jan_5["ns_fit_rmse"],
+        jan_2["ns_fit_rmse"],
+    )
+
+    assert (
+        jan_5["treasury_observation_date"]
+        == pd.Timestamp("2026-01-02")
+    )
+
+    assert (
+        jan_5["treasury_data_age_days"]
+        == 3
+    )
+
+
+def test_future_v2b_nelson_siegel_features_not_used():
+
+    tmf = pd.DataFrame(
+        {
+            "timestamp": [
+                "2026-01-05",
+            ],
+            "close": [
+                31.0,
+            ],
+        }
+    )
+
+    treasury = pd.DataFrame(
+        {
+            "timestamp": [
+                "2026-01-06",
+            ],
+            "yield_3m": [
+                4.10,
+            ],
+            "yield_6m": [
+                4.15,
+            ],
+            "yield_1y": [
+                4.20,
+            ],
+            "yield_2y": [
+                4.30,
+            ],
+            "yield_3y": [
+                4.40,
+            ],
+            "yield_5y": [
+                4.50,
+            ],
+            "yield_7y": [
+                4.60,
+            ],
+            "yield_10y": [
+                4.70,
+            ],
+            "yield_20y": [
+                4.90,
+            ],
+            "yield_30y": [
+                5.10,
+            ],
+        }
+    )
+
+    result = align_treasury_to_tmf(
+        tmf,
+        treasury,
+    )
+
+    # The only Treasury observation is Jan. 6.
+    # The TMF observation is Jan. 5.
+    #
+    # A backward point-in-time merge must not
+    # use the future Jan. 6 Nelson-Siegel factors.
+    assert pd.isna(
+        result[
+            "ns_beta0_level"
+        ].iloc[0]
+    )
+
+    assert pd.isna(
+        result[
+            "ns_beta1_slope"
+        ].iloc[0]
+    )
+
+    assert pd.isna(
+        result[
+            "ns_beta2_curvature"
+        ].iloc[0]
+    )
+
+    assert pd.isna(
+        result[
+            "ns_fit_rmse"
+        ].iloc[0]
+    )
+
+    assert pd.isna(
+        result[
+            "treasury_observation_date"
         ].iloc[0]
     )
