@@ -40,11 +40,26 @@ VINTAGE_SERIES = {
         "series_id": "PAYEMS",
         "category": "labor",
     },
+
     "core_cpi": {
         "series_id": "CPILFESL",
         "category": "inflation",
         "realtime_start": "2020-01-01",
         "observation_start": "2020-01-01",
+    },
+
+    "retail_sales": {
+        "series_id": "RSAFS",
+        "category": "growth",
+        "realtime_start": "2021-01-01",
+        "observation_start": "2021-01-01",
+    },
+
+    "industrial_production": {
+        "series_id": "INDPRO",
+        "category": "growth",
+        "realtime_start": "2021-01-01",
+        "observation_start": "2021-01-01",
     },
 }
 
