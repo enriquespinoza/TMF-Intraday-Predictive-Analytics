@@ -40,6 +40,10 @@ EMPLOYMENT_SITUATION_CES_SERIES = [
     "average_hourly_earnings",
 ]
 
+CONSUMER_PRICE_INDEX_SERIES = [
+    "core_cpi",
+]
+
 REQUIRED_EVENT_COLUMNS = {
     "event_name",
     "reference_date",
@@ -322,20 +326,59 @@ def build_employment_situation_calendars(
 def main() -> None:
     """Build currently supported release calendars."""
 
-    paths = (
+    employment_paths = (
         build_employment_situation_calendars()
     )
 
+    cpi_paths = (
+        build_consumer_price_index_calendars()
+    )
+
+    paths = (
+        employment_paths
+        + cpi_paths
+    )
+
     print(
-        "Built Employment Situation "
+        "\nBuilt macro release "
         f"calendars: {len(paths)}"
     )
 
     for path in paths:
-        print(
-            f"  {path}"
+        print(f"  {path}")
+
+def build_consumer_price_index_calendars(
+    event_path: Path | None = None,
+) -> list[Path]:
+    """Build release calendars for CPI-series features."""
+
+    if event_path is None:
+        event_path = (
+            EVENT_CALENDAR_DIR
+            / "consumer_price_index.csv"
         )
 
+    if not event_path.exists():
+        raise FileNotFoundError(
+            "Consumer Price Index event calendar "
+            f"not found: {event_path}"
+        )
+
+    events = pd.read_csv(
+        event_path
+    )
+
+    calendars = expand_event_calendar(
+        events=events,
+        event_name="consumer_price_index",
+        series_names=(
+            CONSUMER_PRICE_INDEX_SERIES
+        ),
+    )
+
+    return save_series_calendars(
+        calendars=calendars,
+    )
 
 if __name__ == "__main__":
     main()

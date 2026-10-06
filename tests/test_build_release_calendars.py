@@ -395,3 +395,59 @@ def test_october_2025_ces_exception_duplicate_rejected():
         add_employment_situation_exceptions(
             calendars
         )
+
+def test_expand_cpi_event_calendar():
+    events = pd.DataFrame(
+        {
+            "event_name": [
+                "consumer_price_index",
+                "consumer_price_index",
+            ],
+            "reference_date": [
+                "2023-01-01",
+                "2023-02-01",
+            ],
+            "release_date": [
+                "2023-02-14",
+                "2023-03-14",
+            ],
+            "release_time": [
+                "08:30",
+                "08:30",
+            ],
+            "release_timezone": [
+                "America/New_York",
+                "America/New_York",
+            ],
+        }
+    )
+
+    calendars = expand_event_calendar(
+        events=events,
+        event_name="consumer_price_index",
+        series_names=["core_cpi"],
+    )
+
+    assert set(calendars) == {
+        "core_cpi",
+    }
+
+    calendar = calendars[
+        "core_cpi"
+    ]
+
+    assert len(calendar) == 2
+
+    assert list(
+        calendar["series_name"]
+    ) == [
+        "core_cpi",
+        "core_cpi",
+    ]
+
+    assert list(
+        calendar["release_time"]
+    ) == [
+        "08:30",
+        "08:30",
+    ]

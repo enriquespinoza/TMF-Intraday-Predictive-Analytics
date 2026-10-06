@@ -1,8 +1,10 @@
 """Download point-in-time macroeconomic vintages from FRED/ALFRED.
 
-The initial implementation downloads PAYEMS only so that the vintage
-schema and revision behavior can be validated before scaling to all
-release-sensitive macroeconomic series.
+The downloader retrieves approved release-sensitive macroeconomic
+series using the canonical ALFRED vintage-event schema.
+
+PAYEMS was used to validate the initial implementation. Core CPI was
+added after the PAYEMS point-in-time pipeline passed validation.
 
 FRED API output_type=3 returns observations by vintage date with only
 new and revised observations.
@@ -31,12 +33,18 @@ RAW_VINTAGE_DIR = Path(
 DEFAULT_REALTIME_START = "2021-09-01"
 DEFAULT_REALTIME_END = "9999-12-31"
 
-# Start with one series. Do not expand this list until PAYEMS
-# vintage behavior has been validated.
+# Release-sensitive series whose point-in-time behavior
+# has been approved for V3 research.
 VINTAGE_SERIES = {
     "nonfarm_payrolls": {
         "series_id": "PAYEMS",
         "category": "labor",
+    },
+    "core_cpi": {
+        "series_id": "CPILFESL",
+        "category": "inflation",
+        "realtime_start": "2020-01-01",
+        "observation_start": "2020-01-01",
     },
 }
 
@@ -78,7 +86,25 @@ def request_vintage_observations(
     api_key: str,
     realtime_start: str = DEFAULT_REALTIME_START,
     realtime_end: str = DEFAULT_REALTIME_END,
+    observation_start: str | None = None,
 ) -> dict[str, Any]:
+    """Request new and revised observations from FRED/ALFRED."""
+
+    if observation_start is None:
+        observation_start = realtime_start
+
+    params = {
+        "series_id": series_id,
+        "api_key": api_key,
+        "file_type": "json",
+        "realtime_start": realtime_start,
+        "realtime_end": realtime_end,
+        "observation_start": observation_start,
+        "output_type": 3,
+        "sort_order": "asc",
+        "limit": 100000,
+    }
+
     """Request new and revised observations from FRED/ALFRED."""
 
     params = {
@@ -346,13 +372,18 @@ def download_vintage_series(
         "series_id"
     ]
 
-    payload = (
-        request_vintage_observations(
-            series_id=series_id,
-            api_key=api_key,
-            realtime_start=realtime_start,
-            realtime_end=realtime_end,
-        )
+    payload = request_vintage_observations(
+        series_id=series_id,
+        api_key=api_key,
+        realtime_start=config.get(
+            "realtime_start",
+            realtime_start,
+        ),
+        realtime_end=config.get(
+            "realtime_end",
+            realtime_end,
+        ),
+        observation_start=config.get("observation_start"),
     )
 
     data = (
