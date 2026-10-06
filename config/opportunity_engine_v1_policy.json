@@ -1,0 +1,29 @@
+{
+  "policy_name": "Opportunity Engine V1",
+  "policy_status": "research-derived candidate for forward testing",
+  "calibration_source": "reports\\V4_opportunity_engine_v1_interaction_daily.csv",
+  "calibration_rows": 349,
+  "calibration_start": "2022-11-14",
+  "calibration_end": "2026-08-31",
+  "technical": {
+    "strong_setup_threshold": 43.769841269841265,
+    "q4_min_observed": 44.04761904761905,
+    "non_q4_max_observed": 43.49206349206349,
+    "q4_observations": 87,
+    "non_q4_observations": 262
+  },
+  "treasury": {
+    "extreme_confirmation_threshold": 79.72883597883597,
+    "q4_min_observed": 79.76190476190476,
+    "non_q4_max_observed": 79.6957671957672,
+    "q4_observations": 87,
+    "non_q4_observations": 262
+  },
+  "decision_authority": {
+    "risk_governor": true,
+    "technical_opportunity": true,
+    "treasury_extension_check": true,
+    "macro_regime": false,
+    "market_confirmation_v1": false
+  }
+}
