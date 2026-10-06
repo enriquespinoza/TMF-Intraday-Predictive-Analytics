@@ -1,0 +1,20 @@
+{
+  "policy_name": "Execution Architecture V1",
+  "status": "frozen candidate for integrated historical and forward testing",
+  "decision_timing": "end_of_day_t",
+  "execution_timing": "next_session_open",
+  "entry_target_exposure": 1.0,
+  "allowed_exposures": [
+    0.0,
+    0.5,
+    1.0
+  ],
+  "transaction_cost_bps_per_unit_turnover": 5.0,
+  "drawdown_anchor": "initial_position_cycle_entry_price",
+  "opportunity_engine_controls_new_entries_only": true,
+  "risk_governor_controls_open_position": true,
+  "fresh_entry_candidate_required_after_full_exit": true,
+  "reductions_reset_entry_anchor": false,
+  "restorations_reset_entry_anchor": false,
+  "same_day_close_execution_allowed": false
+}
