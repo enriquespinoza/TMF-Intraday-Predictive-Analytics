@@ -1,0 +1,9 @@
+metric,value
+evaluated_days,1235.0
+v2_entry_allowed_days,318.0
+v2_entry_allowed_share,0.2574898785425101
+v3_entry_allowed_days,382.0
+v3_entry_allowed_share,0.30931174089068825
+entry_days_restored_by_v3,64.0
+entry_days_lost_by_v3,0.0
+restored_share_of_all_days,0.051821862348178135
