@@ -1,0 +1,14 @@
+model,feature,standardized_coefficient
+technical_v1,return_5d,0.19009275632157951
+technical_v1,rsi_14,-0.260651954003351
+technical_v1,volatility_20d,0.10079962844540469
+technical_v1,relative_volume,-0.09604604123924468
+technical_v1,distance_from_20d_high,0.11214847230465685
+V3_FINAL,return_5d,0.20607442371923987
+V3_FINAL,rsi_14,-0.3718636566823259
+V3_FINAL,volatility_20d,0.27047936182336546
+V3_FINAL,relative_volume,-0.09862568718596032
+V3_FINAL,distance_from_20d_high,0.12140611332283543
+V3_FINAL,payroll_change_1m,-0.34974782137212856
+V3_FINAL,payroll_revision_total,0.019166281393003186
+V3_FINAL,payroll_broad_revision_event,0.1552149008851026
