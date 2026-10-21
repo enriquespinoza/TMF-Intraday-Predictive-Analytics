@@ -319,7 +319,7 @@ def main():
         existing = audit_existing_run(session)
 
         if existing:
-            print("SKIPPED — forecast already exists:", existing[0])
+            print("SKIPPED — forecast already exists:", existing)
             return
 
         snapshot = (

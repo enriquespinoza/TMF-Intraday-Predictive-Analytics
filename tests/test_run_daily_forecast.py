@@ -171,3 +171,27 @@ def test_refresh_without_run_rejected(
         engine.main()
 
     assert error.value.code == 2
+
+
+def test_completed_run_skips_without_refresh(
+    isolated_engine, monkeypatch, capsys
+):
+    completed = isolated_engine / "completed_forecast.json"
+    completed.write_text("{}")
+
+    monkeypatch.setattr(
+        engine, "audit_existing_run",
+        lambda session: completed,
+    )
+    monkeypatch.setattr(engine, "refresh_snapshot", fail_if_called)
+    monkeypatch.setattr(engine, "execute_forecast", fail_if_called)
+    monkeypatch.setattr(
+        sys, "argv",
+        ["run_daily_forecast", "--run", "--refresh"],
+    )
+
+    engine.main()
+
+    assert "SKIPPED" in capsys.readouterr().out
+    assert completed.exists()
+    assert not list(isolated_engine.glob(".lock_*"))
