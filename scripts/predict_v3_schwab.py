@@ -8,6 +8,8 @@ import json
 import os
 import pandas_market_calendars as mcal
 
+from scripts.market_session import require_issuance_window
+
 import numpy as np
 import pandas as pd
 
@@ -185,9 +187,13 @@ def latest_payems(as_of_date):
 
     release_at = release_at.dt.tz_localize(NY)
 
-    market_close = pd.Timestamp(as_of_date).tz_localize(
-        NY
-    ) + pd.Timedelta(hours=16)
+    # Use the actual NYSE closing time, including early closes.
+    schedule = mcal.get_calendar("NYSE").schedule(
+        start_date=as_of_date, end_date=as_of_date,
+    )
+    if schedule.empty:
+        raise ValueError("PAYEMS origin is not an NYSE session")
+    market_close = schedule.iloc[0]["market_close"].tz_convert(NY)
 
     available = events.loc[release_at <= market_close].copy()
 
@@ -319,6 +325,7 @@ def main():
 
     target_date = sessions[HORIZON - 1].date()
 
+    require_issuance_window(forecast_date)
     issued_at = datetime.now(timezone.utc)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -369,6 +376,8 @@ def main():
     )
     path = OUTPUT_DIR / filename
 
+    # Refuse to write if the next market opened during modeling.
+    require_issuance_window(forecast_date)
     with path.open("x", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
 

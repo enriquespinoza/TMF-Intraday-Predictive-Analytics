@@ -12,7 +12,9 @@ from scripts.validate_tmf_session import (
 )
 
 
-def validate_snapshot_pair(daily_path, now=None):
+def validate_snapshot_pair(
+    daily_path, now=None, expected_session=None
+):
     daily_path = Path(daily_path)
 
     prefix = "TMF_1d_"
@@ -39,9 +41,10 @@ def validate_snapshot_pair(daily_path, now=None):
 
     now = now.tz_convert("UTC")
 
-    # Existing check: today must be an NYSE session
-    # whose post-close waiting period has elapsed.
-    daily_result = validate_session(daily_path, now=now)
+    # Resolve the completed session, including overnight/weekend runs.
+    daily_result = validate_session(
+        daily_path, now=now, expected_session=expected_session
+    )
     market_date = pd.Timestamp(
         daily_result["market_date"]
     ).date()

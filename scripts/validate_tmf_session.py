@@ -7,13 +7,15 @@ from pathlib import Path
 import pandas as pd
 import pandas_market_calendars as mcal
 
+from scripts.market_session import resolve_market_session
+
 
 NY = "America/New_York"
 CALENDAR = mcal.get_calendar("NYSE")
 FINALIZATION_DELAY = pd.Timedelta(minutes=30)
 
 
-def validate_session(snapshot, now=None):
+def validate_session(snapshot, now=None, expected_session=None):
     if now is None:
         now = pd.Timestamp.now(tz="UTC")
     else:
@@ -22,24 +24,21 @@ def validate_session(snapshot, now=None):
             raise ValueError("Validation time must be timezone-aware")
         now = now.tz_convert("UTC")
 
-    today = now.tz_convert(NY).date()
-
-    schedule = CALENDAR.schedule(
-        start_date=today,
-        end_date=today,
-    )
-
-    if schedule.empty:
-        raise ValueError("Today is not an NYSE trading session")
-
-    market_close = schedule.iloc[0]["market_close"]
-    earliest_safe_time = market_close + FINALIZATION_DELAY
-
-    if now < earliest_safe_time:
+    window = resolve_market_session(now)
+    if window.status != "READY":
         raise ValueError(
-            "Current NYSE session is not past the "
-            "post-close validation window"
+            f"{window.status}: outside prospective post-close "
+            "validation window"
         )
+
+    today = window.session
+    if (
+        expected_session is not None
+        and str(expected_session) != str(today)
+    ):
+        raise ValueError("Validated session mismatch")
+
+    market_close = window.finalized_at_utc - FINALIZATION_DELAY
 
     data = pd.read_csv(snapshot)
 

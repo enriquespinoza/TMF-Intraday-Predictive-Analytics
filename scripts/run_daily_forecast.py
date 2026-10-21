@@ -14,7 +14,9 @@ import pandas_market_calendars as mcal
 
 from config.v3_final import FINAL_V3_NAME
 from src.models.directional_classifier import HORIZON
-from scripts.validate_tmf_session import FINALIZATION_DELAY
+from scripts.market_session import (
+    require_issuance_window, resolve_market_session,
+)
 from scripts.validate_tmf_snapshot_pair import validate_snapshot_pair
 
 
@@ -30,24 +32,12 @@ def digest(path):
 
 
 def session_ready():
-    now = pd.Timestamp.now(tz="UTC")
-    session = now.tz_convert(NY).date()
-
-    calendar = mcal.get_calendar("NYSE")
-    schedule = calendar.schedule(
-        start_date=session,
-        end_date=session,
-    )
-
-    if schedule.empty:
-        raise ValueError("Today is not an NYSE session")
-
-    market_close = schedule.iloc[0]["market_close"]
-
-    if now < market_close + FINALIZATION_DELAY:
-        raise ValueError("Post-close waiting period not complete")
-
-    return session, now
+    window = resolve_market_session()
+    if window.status != "READY":
+        raise ValueError(
+            f"{window.status}: no prospective post-close session available"
+        )
+    return window.session, window.now_utc
 
 
 def matching_forecasts(session):
@@ -328,7 +318,9 @@ def main():
             else args.daily or latest_snapshot()
         )
 
-        validation = validate_snapshot_pair(snapshot)
+        validation = validate_snapshot_pair(
+            snapshot, expected_session=session
+        )
 
         if validation["market_date"] != str(session):
             raise ValueError("Validated session mismatch")
@@ -337,6 +329,7 @@ def main():
         print("Origin:", session)
         print("Expected target:", forecast_target(session))
 
+        require_issuance_window(session)
         execute_forecast(session, snapshot)
 
     finally:
