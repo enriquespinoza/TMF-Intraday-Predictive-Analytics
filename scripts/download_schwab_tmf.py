@@ -15,6 +15,38 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT / "data" / "raw" / "schwab"
 
 
+def resolve_token_path(platform_name=None):
+    """Resolve a persistent Schwab token file location."""
+    configured = os.getenv("SCHWAB_TOKEN_PATH")
+
+    if configured:
+        token_path = Path(configured).expanduser()
+
+        if not token_path.is_absolute():
+            raise RuntimeError(
+                "SCHWAB_TOKEN_PATH must be absolute"
+            )
+
+        return token_path
+
+    platform_name = platform_name or os.name
+
+    if platform_name == "nt":
+        local_appdata = os.getenv("LOCALAPPDATA")
+
+        if local_appdata:
+            return (
+                Path(local_appdata)
+                / "TMF-Intraday-Predictive-Analytics"
+                / "schwab_token.json"
+            )
+
+    raise RuntimeError(
+        "SCHWAB_TOKEN_PATH must be configured "
+        "for this operating system"
+    )
+
+
 def create_client():
     load_dotenv(ROOT / ".env")
 
@@ -25,14 +57,7 @@ def create_client():
     if not all((key, secret, callback)):
         raise RuntimeError("Missing Schwab environment settings")
 
-    token_path = Path(
-        os.getenv("SCHWAB_TOKEN_PATH")
-        or (
-            Path(os.environ["LOCALAPPDATA"])
-            / "TMF-Intraday-Predictive-Analytics"
-            / "schwab_token.json"
-        )
-    )
+    token_path = resolve_token_path()
 
     token_path.parent.mkdir(parents=True, exist_ok=True)
 
