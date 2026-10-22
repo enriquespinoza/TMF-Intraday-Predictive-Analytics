@@ -46,7 +46,7 @@ def trading_dates(origin):
     return [str(day.date()) for day in dates[:HORIZON]]
 
 
-def run(snapshot, *, execute=False, checkpoint_sha=None):
+def _run_unlocked(snapshot, *, execute=False, checkpoint_sha=None):
     snapshot = Path(snapshot).resolve()
     if snapshot.parent != SOURCE_DIR.resolve():
         raise ValueError("Snapshot must be within the Schwab snapshot directory")
@@ -132,6 +132,25 @@ def run(snapshot, *, execute=False, checkpoint_sha=None):
                                state="GENERATED")
     return {"status": "GENERATED", "manifest": str(manifest), "path": str(destination),
             "session": origin, "order_generated": False}
+
+
+
+def run(snapshot, *, execute=False, checkpoint_sha=None):
+    """Serialize per-origin generation; never silently remove stale locks."""
+    if not execute:
+        return _run_unlocked(snapshot, execute=False, checkpoint_sha=checkpoint_sha)
+
+    snapshot = Path(snapshot).resolve()
+    if snapshot.parent != SOURCE_DIR.resolve():
+        raise ValueError("Snapshot must be within the Schwab snapshot directory")
+    validated = validate_snapshot_pair(snapshot)
+    origin = validated["market_date"]
+    require_issuance_window(origin)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    with session_lock(OUTPUT_DIR, origin):
+        return _run_unlocked(
+            snapshot, execute=True, checkpoint_sha=checkpoint_sha,
+        )
 
 
 def main():
