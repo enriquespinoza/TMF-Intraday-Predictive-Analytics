@@ -70,7 +70,6 @@ def load_timesfm25_model(revision: str):
         timesfm.ForecastConfig(
             max_context=CONTEXT_LENGTH,
             max_horizon=128,
-            per_core_batch_size=1,
             normalize_inputs=True,
             use_continuous_quantile_head=True,
             force_flip_invariance=False,
