@@ -81,3 +81,41 @@ The manifest records `AUDITED_LEGACY`: it does not claim the original
 forecast had a manifest at issuance or prove independent timestamp provenance.
 Only run adoption once; subsequent checks must use `--audit`.
 Never check credentials or OAuth token files into Git.
+
+## Evaluating matured five-session forecasts
+
+A separate outcome evaluator verifies the forecast integrity manifest before
+using a *completed* Schwab snapshot whose **filename UTC capture time**
+is after the target NYSE close plus the finalization delay. The required
+target-session 5-minute bars must be complete, including early-close cases.
+Every forecast date must be present in the daily history.
+
+The scoring path is intentionally distinct from prospective forecast issuance.
+Historical target snapshots may be checked at their recorded capture time;
+this exception does **not** allow retroactive forecast creation.
+
+**Do not run before October 28, 2026 has completed** for the October 21 origin.
+
+```bash
+python -m pytest -q tests/test_score_timesfm25_forecast.py
+python -m pytest -q
+```
+
+Once a valid October 28 or later snapshot explicitly ending at October 28 is
+available and its intraday companion has been verified, inspect without writing:
+
+```bash
+python -m scripts.score_timesfm25_forecast \
+  --session 2026-10-21 \
+  --daily data/raw/schwab/TMF_1d_<TARGET_CAPTURE_ID>.csv \
+  --check
+```
+
+Then use `--run` to write an exclusive evaluation JSON under
+`data/forward_test/timesfm25/evaluations/`. Repeat `--run` refuses
+to replace an earlier evaluation. The evaluator records path MAE/RMSE,
+final-day absolute error, a no-change persistence baseline, direction
+classification, and 10–90% interval coverage. Intervals have **not** yet
+been calibrated on held-out TMF market outcomes.
+
+Do not modify the forecast, its adoption manifest, or the source snapshots.
