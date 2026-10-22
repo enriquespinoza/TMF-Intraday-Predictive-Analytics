@@ -100,13 +100,12 @@ def forecast_price_path(model, context, horizon=HORIZON):
         raise ValueError("Nonfinite TimesFM forecasts")
     if (point <= 0).any() or (quantiles <= 0).any():
         raise ValueError("Nonpositive TimesFM price forecasts")
-    if not np.allclose(point[0], quantiles[0, :, 5], atol=1e-4, rtol=1e-4):
-        raise ValueError("TimesFM point forecast does not match median")
     if np.any(np.diff(quantiles[0, :, 1:], axis=1) < -1e-6):
         raise ValueError("TimesFM quantile crossing")
 
     return {
-        "median": point[0].tolist(),
+        "point": point[0].tolist(),
+        "median": quantiles[0, :, 5].tolist(),
         "q10": quantiles[0, :, 1].tolist(),
         "q90": quantiles[0, :, 9].tolist(),
     }
