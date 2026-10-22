@@ -20,6 +20,7 @@ import pandas as pd
 import pandas_market_calendars as mcal
 
 from scripts.market_session import require_issuance_window
+from scripts.timesfm25_integrity import audit_existing_run, create_manifest, session_lock
 from scripts.validate_tmf_snapshot_pair import validate_snapshot_pair
 from src.models.timesfm25_forecaster import (
     HORIZON, MODEL_ID, MODEL_NAME, closing_context,
@@ -68,8 +69,12 @@ def run(snapshot, *, execute=False, checkpoint_sha=None):
     destination = OUTPUT_DIR / (
         f"TMF_TIMESFM25_{origin}_{HORIZON}d.json"
     )
+    # Refuse an existing incomplete or modified record.
     if destination.exists():
-        raise FileExistsError(f"TimesFM forecast already exists: {destination}")
+        audit_existing_run(origin, output_dir=OUTPUT_DIR, source_dir=SOURCE_DIR,
+                           history_path=ROOT / 'data/raw/TMF_1d.csv')
+        return {'status': 'ALREADY_COMPLETED', 'path': str(destination),
+                'session': origin, 'order_generated': False}
 
     # Reuse V3's established dividend-aware Yahoo/Schwab reconciliation
     # without invoking the V3 predictor or altering its frozen model.
@@ -122,7 +127,10 @@ def run(snapshot, *, execute=False, checkpoint_sha=None):
     with destination.open("x", encoding="utf-8") as handle:
         json.dump(result, handle, indent=2)
         handle.write("\n")
-    return {"status": "GENERATED", "path": str(destination),
+    manifest = create_manifest(destination, source_dir=SOURCE_DIR,
+                               history_path=ROOT / "data/raw/TMF_1d.csv",
+                               state="GENERATED")
+    return {"status": "GENERATED", "manifest": str(manifest), "path": str(destination),
             "session": origin, "order_generated": False}
 
 
