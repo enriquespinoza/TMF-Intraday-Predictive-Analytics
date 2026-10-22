@@ -60,3 +60,24 @@ No automatic timer, OAuth migration, or portfolio execution wiring is
 authorized by this experimental module. Ensure a single writer per model
 and session, off-host backups, session-locking, Linux dependency validation,
 and process-failure notifications before unattended use.
+
+## Immutable run manifests and adoption of Forecast 001
+
+New forecasts have per-origin locks and a separate exclusive-write manifest.
+An interrupted forecast without a manifest is an `INCOMPLETE_RUN` error,
+not an invitation to regenerate or overwrite. Do not delete stale locks or
+forecast files without inspecting and preserving them.
+
+Forecast 001 (origin 2026-10-21) predates the manifest implementation.
+Verify original snapshot and history hashes first. The following will
+attest the existing record, **without modifying its forecast bytes**:
+
+```bash
+python -m scripts.audit_timesfm25_run --session 2026-10-21 --adopt-legacy
+python -m scripts.audit_timesfm25_run --session 2026-10-21 --audit
+```
+
+The manifest records `AUDITED_LEGACY`: it does not claim the original
+forecast had a manifest at issuance or prove independent timestamp provenance.
+Only run adoption once; subsequent checks must use `--audit`.
+Never check credentials or OAuth token files into Git.
