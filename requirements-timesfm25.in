@@ -1,0 +1,3 @@
+# Experimental TimesFM 2.5 dependencies; install in a dedicated virtual environment.
+-r requirements-trading.in
+timesfm[torch]==2.0.2
