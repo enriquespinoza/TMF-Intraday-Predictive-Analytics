@@ -189,15 +189,27 @@ def build_paired_report(origin, *, observation_daily=None, now=None):
     if observation_daily is None:
         return result
 
-    # Observation eligibility is determined by the live session validator.
-    # The caller cannot substitute arbitrary intraday data or retroactive
-    # snapshots for a newly issued signal.
+    # Outcomes are read-only historical observations, not new predictions.
+    # Revalidate a past snapshot at the UTC capture time encoded in its
+    # filename, using the same pattern as score_timesfm25_forecast.py.
+    # Never pass this historical clock to a forecast issuance function.
     observation_daily = Path(observation_daily).resolve()
     if observation_daily.parent != SOURCE_DIR.resolve():
         raise ValueError("Observation snapshot must be in Schwab source directory")
-    if SOURCE_NAME.fullmatch(observation_daily.name) is None:
+    source_match = SOURCE_NAME.fullmatch(observation_daily.name)
+    if source_match is None:
         raise ValueError("Observation snapshot name is invalid")
-    validation = validate_snapshot_pair(observation_daily, now=now)
+    captured = pd.to_datetime(
+        source_match.group(1), format="%Y%m%dT%H%M%SZ",
+        utc=True, errors="raise",
+    )
+    observed_now = pd.Timestamp.now(tz="UTC") if now is None else pd.Timestamp(now)
+    if pd.isna(observed_now) or observed_now.tzinfo is None:
+        raise ValueError("Report time must be timezone-aware")
+    observed_now = observed_now.tz_convert("UTC")
+    if captured > observed_now:
+        raise ValueError("Observation snapshot was captured in the future")
+    validation = validate_snapshot_pair(observation_daily, now=captured)
     observed_session = validation["market_date"]
 
     prices = pd.read_csv(observation_daily)
