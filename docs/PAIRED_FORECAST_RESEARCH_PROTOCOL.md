@@ -122,3 +122,16 @@ from this legacy pilot. Matched outcome scoring uses matching forecast
 origin, target and independently verified realized values; it must not imply
 equal input captures when they differed. Continue to require exact shared
 snapshot SHA-256 for new forecast issuance.
+
+## Retrospective observation clock
+
+The read-only partial-outcome monitor revalidates an archived Schwab
+snapshot **as of its filename-encoded UTC capture timestamp**. It first
+requires the file to be in the expected Schwab source directory, the
+timestamp to be parseable and no later than the current report time,
+and then checks the original post-close market-session and 78-bar
+(or exchange-calendar-correct early-close) conditions at capture.
+This avoids erroneously rejecting yesterday's valid snapshot because
+today's exchange has opened. It does NOT permit backdated issuance:
+`run_daily_forecast` and `predict_timesfm25_schwab` still require
+their own prospective window checks using actual current time.
