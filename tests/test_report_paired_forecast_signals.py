@@ -182,3 +182,43 @@ def test_identical_source_snapshot_is_strict_pair(case):
     assert result["status"] == "PAIRED_FORECASTS"
     assert result["source_alignment"] == "SAME_VALIDATED_SNAPSHOT"
     assert result["input_snapshot"] == "TMF_1d_20261021T225435Z.csv"
+
+
+def test_historical_outcome_uses_capture_time(case, monkeypatch):
+    seen = []
+    def validator(path, now=None):
+        seen.append(pd.Timestamp(now))
+        return {"market_date": "2026-10-22", "close_difference": 0.02}
+    monkeypatch.setattr(paired, "validate_snapshot_pair", validator)
+    result = paired.build_paired_report(
+        ORIGIN, observation_daily=case["snapshot"],
+        now=pd.Timestamp("2026-10-23T18:32:00Z"),
+    )
+    assert result["observation"]["status"] == "PARTIAL_OUTCOMES"
+    assert seen == [pd.Timestamp("2026-10-22T22:11:38Z")]
+
+
+def test_reject_future_dated_outcome_snapshot(case):
+    with pytest.raises(ValueError, match="captured in the future"):
+        paired.build_paired_report(
+            ORIGIN, observation_daily=case["snapshot"],
+            now=pd.Timestamp("2026-10-22T20:00:00Z"),
+        )
+
+
+def test_reject_naive_report_time(case):
+    with pytest.raises(ValueError, match="timezone-aware"):
+        paired.build_paired_report(
+            ORIGIN, observation_daily=case["snapshot"],
+            now=pd.Timestamp("2026-10-23T18:32:00"),
+        )
+
+
+def test_capture_time_validation_error_propagates(case, monkeypatch):
+    def rejected(path, now=None):
+        raise ValueError("NOT_READY: outside prospective post-close validation window")
+    monkeypatch.setattr(paired, "validate_snapshot_pair", rejected)
+    with pytest.raises(ValueError, match="NOT_READY"):
+        paired.build_paired_report(
+            ORIGIN, observation_daily=case["snapshot"],
+        )
