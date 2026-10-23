@@ -104,3 +104,21 @@ python -m scripts.report_paired_forecast_signals --origin 2026-10-22
 
 Verify tests locally before deployment. The new monitor does not start
 daily jobs, refresh OAuth, or write reports to the forecast ledger.
+
+## Historical source-alignment exception
+
+The October 21, 2026 pilot forecasts were independently audited but used
+**different** Schwab snapshot captures. The read-only paired monitor labels
+such a case `CROSS_SNAPSHOT_HISTORICAL_COMPARISON` and exposes separate
+filenames and hashes for each model. This is **not** treated as a strict
+same-snapshot controlled experiment; neither forecast or source is modified.
+If the same filename is recorded with conflicting hashes, the monitor fails.
+
+The October 22, 2026 experiment used the exact same source snapshot and is
+labeled `PAIRED_FORECASTS` / `SAME_VALIDATED_SNAPSHOT`.
+
+When evaluating results, stratify strict same-source experiments separately
+from this legacy pilot. Matched outcome scoring uses matching forecast
+origin, target and independently verified realized values; it must not imply
+equal input captures when they differed. Continue to require exact shared
+snapshot SHA-256 for new forecast issuance.
