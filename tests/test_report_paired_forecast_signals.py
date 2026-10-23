@@ -113,7 +113,7 @@ def test_partial_observation_outside_q90(case):
 
 def test_snapshot_mismatch_rejected(case):
     change(case["tf"], source_sha256="f" * 64)
-    with pytest.raises(ValueError, match="different input"):
+    with pytest.raises(ValueError, match="Same snapshot filename"):
         paired.build_paired_report(ORIGIN)
 
 
@@ -162,3 +162,23 @@ def test_future_session_gap_rejected(case):
         paired.build_paired_report(
             ORIGIN, observation_daily=case["snapshot"]
         )
+
+
+def test_separately_audited_source_snapshots_are_labeled(case):
+    """Legacy October 21 records were not a strict same-source pairing."""
+    change(case["tf"], source_snapshot="TMF_1d_20261021T230100Z.csv",
+           source_sha256="b" * 64)
+    result = paired.build_paired_report(ORIGIN)
+    assert result["status"] == "CROSS_SNAPSHOT_HISTORICAL_COMPARISON"
+    assert result["source_alignment"] == "DIFFERENT_AUDITED_SNAPSHOTS"
+    assert result["input_snapshot"] is None
+    assert result["input_snapshots"]["v3"]["sha256"] != (
+        result["input_snapshots"]["timesfm"]["sha256"]
+    )
+
+
+def test_identical_source_snapshot_is_strict_pair(case):
+    result = paired.build_paired_report(ORIGIN)
+    assert result["status"] == "PAIRED_FORECASTS"
+    assert result["source_alignment"] == "SAME_VALIDATED_SNAPSHOT"
+    assert result["input_snapshot"] == "TMF_1d_20261021T225435Z.csv"
