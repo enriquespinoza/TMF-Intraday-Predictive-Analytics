@@ -82,7 +82,7 @@ def change(path, **values):
 
 def test_direction_divergence(case):
     change(case["v3"], probability_positive_return=0.392)
-    change(case["tf"], median_forecast=[29, 29, 29, 29, 30.18],
+    change(case["tf"], median_forecast=[28.086, 28.289, 28.269, 28.378, 29.5],
            tmf_close=28.22)
     report = paired.build_paired_report(ORIGIN)
     assert report["directional_relation"] == "DISAGREE"
