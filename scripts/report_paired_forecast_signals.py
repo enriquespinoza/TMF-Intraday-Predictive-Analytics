@@ -89,11 +89,23 @@ def build_paired_report(origin, *, observation_daily=None, now=None):
     target = tf.get("forecast_target_date")
     if v3.get("forecast_target_date") != target:
         raise ValueError("Paired forecast target mismatch")
-    if (
-        v3.get("source_snapshot") != tf.get("source_snapshot")
-        or v3.get("source_sha256") != tf.get("source_sha256")
+    # The October 21 pilot forecasts used separate independently audited
+    # Schwab captures. Preserve that distinction instead of treating them
+    # as a strict same-snapshot matched experiment.
+    v3_source = v3.get("source_snapshot")
+    tf_source = tf.get("source_snapshot")
+    v3_source_hash = v3.get("source_sha256")
+    tf_source_hash = tf.get("source_sha256")
+    if not all(
+        isinstance(x, str) and x
+        for x in (v3_source, tf_source, v3_source_hash, tf_source_hash)
     ):
-        raise ValueError("Paired forecasts used different input snapshots")
+        raise ValueError("Missing paired input provenance")
+    if v3_source == tf_source and v3_source_hash != tf_source_hash:
+        raise ValueError("Same snapshot filename has different recorded hashes")
+    same_snapshot = (
+        v3_source == tf_source and v3_source_hash == tf_source_hash
+    )
 
     v3_close = _number(v3.get("tmf_close"), "V3 origin price")
     tf_close = _number(tf.get("tmf_close"), "TimesFM origin price")
@@ -123,12 +135,23 @@ def build_paired_report(origin, *, observation_daily=None, now=None):
     tf_return = (med[-1] / tf_close - 1) * 100
     tf_direction = _direction(tf_return)
     result = {
-        "status": "PAIRED_FORECASTS",
+        "status": (
+            "PAIRED_FORECASTS" if same_snapshot
+            else "CROSS_SNAPSHOT_HISTORICAL_COMPARISON"
+        ),
+        "source_alignment": (
+            "SAME_VALIDATED_SNAPSHOT" if same_snapshot
+            else "DIFFERENT_AUDITED_SNAPSHOTS"
+        ),
         "forecast_origin": origin,
         "forecast_target_date": target,
         "horizon_trading_days": 5,
-        "input_snapshot": v3["source_snapshot"],
-        "input_snapshot_sha256": v3["source_sha256"],
+        "input_snapshot": v3_source if same_snapshot else None,
+        "input_snapshot_sha256": v3_source_hash if same_snapshot else None,
+        "input_snapshots": {
+            "v3": {"filename": v3_source, "sha256": v3_source_hash},
+            "timesfm": {"filename": tf_source, "sha256": tf_source_hash},
+        },
         "origin_close": tf_close,
         "v3": {
             "forecast_sha256": sha256(v3_path),
@@ -153,7 +176,13 @@ def build_paired_report(origin, *, observation_daily=None, now=None):
         "research_note": (
             "Opposing directions are observations, not trade signals. "
             "V3 probability and TimesFM quantiles are not equivalent. "
-            "Partial-path diagnostics do not establish five-day predictive skill."
+            "Partial-path diagnostics do not establish five-day predictive skill. "
+            + (
+                "The models used different separately audited snapshots; "
+                "this is a historical comparison, not a strict same-source pair."
+                if not same_snapshot else
+                "Both models used the same validated Schwab snapshot."
+            )
         ),
     }
 
@@ -182,6 +211,8 @@ def build_paired_report(origin, *, observation_daily=None, now=None):
     closes = pd.to_numeric(prices["close"], errors="raise").astype(float)
     if not all(math.isfinite(x) and x > 0 for x in closes):
         raise ValueError("Observation prices contain invalid values")
+    if series_dates.iloc[-1] > observed_session:
+        raise ValueError("Observation contains future session prices")
     if series_dates.iloc[-1] != observed_session:
         raise ValueError("Observation snapshot session mismatch")
 
