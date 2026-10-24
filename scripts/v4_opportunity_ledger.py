@@ -419,9 +419,25 @@ def report():
     for path in sorted(EVAL_DIR.glob("TMF_V4_OPPORTUNITY_*_5d_evaluation.json")):
         evaluation = read_json(path)
         origin = evaluation.get("forecast_origin")
-        _, rebuilt = score(origin, SOURCE_DIR / evaluation["outcome_snapshot"],
-                           now=now_utc(), write=False)
-        # The timestamp is a recorded audit field rather than a score input.
+        if not isinstance(origin, str):
+            raise ValueError("V4 evaluation lacks origin")
+        verified_now = now_utc()
+        scored_at = utc(evaluation.get("scored_at_utc"))
+        source_name = evaluation.get("outcome_snapshot")
+        match = SOURCE_NAME.fullmatch(source_name) if isinstance(source_name, str) else None
+        if match is None:
+            raise ValueError("V4 evaluation outcome filename invalid")
+        captured = pd.to_datetime(
+            match.group(1), format="%Y%m%dT%H%M%SZ",
+            utc=True, errors="raise",
+        )
+        if not captured <= scored_at <= verified_now:
+            raise ValueError("V4 evaluation timestamp precedes outcome or is future")
+        _, rebuilt = score(
+            origin, SOURCE_DIR / source_name,
+            now=verified_now, write=False,
+        )
+        # Timestamp is a previously recorded audit field, not a score input.
         rebuilt["scored_at_utc"] = evaluation["scored_at_utc"]
         if rebuilt != evaluation:
             raise ValueError(f"V4 evaluation does not match audited data: {path.name}")
