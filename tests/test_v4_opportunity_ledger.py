@@ -195,7 +195,7 @@ def test_outcome_earlier_than_target_rejected(case, monkeypatch):
     monkeypatch.setattr(ledger, "now_utc", lambda now=None:
                         pd.Timestamp("2026-10-30T22:00:00Z") if now is None
                         else ledger.utc(now))
-    with pytest.raises(ValueError, match="target"):
+    with pytest.raises(ValueError, match="wrong final market date"):
         ledger.score("2026-10-23", case["daily"])
 
 
