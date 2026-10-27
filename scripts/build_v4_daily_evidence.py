@@ -70,6 +70,7 @@ def _read_history(path, required, date_column):
     frame = pd.read_csv(path)
     if frame.empty or not required.issubset(frame.columns):
         raise ValueError(f"Missing required point-in-time source fields: {path.name}")
+    ledger.no_future_fields({str(name): None for name in frame.columns})
     frame[date_column] = pd.to_datetime(
         frame[date_column], errors="raise"
     ).dt.date.astype(str)
