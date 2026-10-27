@@ -78,12 +78,24 @@ def _read_history(path, required, date_column):
         raise ValueError("Duplicated source dates")
     if not frame[date_column].is_monotonic_increasing:
         raise ValueError("Source rows must be chronological")
-    times = pd.to_datetime(frame["available_at_utc"], utc=True, errors="raise")
-    if times.isna().any() or any(
-        pd.Timestamp(raw).tzinfo is None for raw in frame["available_at_utc"]
-    ):
-        raise ValueError("Availability timestamps must be explicit and timezone-aware")
-    frame["_available"] = times
+    # Parse separately so mixed ISO8601 formats (including offsets and Z)
+    # cannot fail inside pandas before we enforce timezone awareness.
+    # pd.to_datetime(series, utc=True) would also silently interpret naive
+    # timestamps as UTC; such records are inadmissible provenance.
+    times = []
+    for raw in frame["available_at_utc"]:
+        try:
+            stamp = pd.Timestamp(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                "Availability timestamps must be valid and timezone-aware"
+            ) from exc
+        if pd.isna(stamp) or stamp.tzinfo is None:
+            raise ValueError(
+                "Availability timestamps must be explicit and timezone-aware"
+            )
+        times.append(stamp.tz_convert("UTC"))
+    frame["_available"] = pd.DatetimeIndex(times)
     return path, frame
 
 
