@@ -50,6 +50,30 @@ def test_naive_availability_rejected(tmp_path, monkeypatch):
         subject._read_history(market, subject.MARKET_COLUMNS, "market_date")
 
 
+def test_mixed_timezone_aware_formats_accepted(tmp_path, monkeypatch):
+    market, _ = sources(tmp_path, monkeypatch)
+    data = pd.read_csv(market)
+    data.loc[0, "available_at_utc"] = "2026-06-01T18:00:00-04:00"
+    data.to_csv(market, index=False)
+    _, parsed = subject._read_history(
+        market, subject.MARKET_COLUMNS, "market_date",
+    )
+    assert parsed.loc[0, "_available"] == pd.Timestamp(
+        "2026-06-01T22:00:00Z"
+    )
+
+
+def test_malformed_availability_has_explicit_error(tmp_path, monkeypatch):
+    market, _ = sources(tmp_path, monkeypatch)
+    data = pd.read_csv(market)
+    data.loc[0, "available_at_utc"] = "not-a-timestamp"
+    data.to_csv(market, index=False)
+    with pytest.raises(ValueError, match="timezone-aware"):
+        subject._read_history(
+            market, subject.MARKET_COLUMNS, "market_date",
+        )
+
+
 def test_future_reference_date_rejected(tmp_path, monkeypatch):
     market, _ = sources(tmp_path, monkeypatch)
     _, data = subject._read_history(
