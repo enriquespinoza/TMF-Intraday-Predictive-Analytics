@@ -155,6 +155,8 @@ def _treasury(origin, treasury_history, now):
             raise ValueError(f"Missing Treasury data: {column}")
     if frame["reference_date"].iloc[-1] > origin:
         raise ValueError("Future Treasury reference date")
+    # Old releases are acceptable only for the current market date when
+    # exchange/Treasury calendars differ; large gaps fail below.
     frame["change_30y_1d_bp"] = frame["yield_30y"].diff() * 100
     frame["change_30y_5d_bp"] = frame["yield_30y"].diff(5) * 100
     frame["real_yield_10y_change_5d_bp"] = (
@@ -167,10 +169,10 @@ def _align_asof(market, treasury):
     # Find the last Treasury release whose *reference date* and *genuine
     # recorded availability timestamp* both precede each market decision.
     treasury_rows = []
-    for row in market.itertuples(index=False):
+    for _, row in market.iterrows():
         eligible = treasury.loc[
-            (treasury["reference_date"] <= row.market_date)
-            & (treasury["_available"] <= row._available)
+            (treasury["reference_date"] <= row["market_date"])
+            & (treasury["_available"] <= row["_available"])
         ]
         if eligible.empty:
             treasury_rows.append(None)
@@ -225,10 +227,20 @@ def _compute(origin, daily, market_history, treasury_history, *, now=None):
         streak.append(count)
     technical["below_ema21_streak"] = streak
     scored_technical = add_technical_opportunity_features(technical)
-    scored_treasury = add_treasury_confirmation_features(
-        aligned[["market_date", "change_30y_1d_bp",
-                 "change_30y_5d_bp", "real_yield_10y_change_5d_bp"]]
+    # Frozen Treasury scoring is on individual *Treasury observations*,
+    # never a forward-filled market-day grid (which would alter percentiles).
+    scored_treasury_history = add_treasury_confirmation_features(
+        treasury[["reference_date", "change_30y_1d_bp",
+                  "change_30y_5d_bp", "real_yield_10y_change_5d_bp"]]
+        .rename(columns={"reference_date": "market_date"})
     )
+    latest_treasury_ref = aligned["reference_date"].iloc[-1]
+    scored_treasury = scored_treasury_history.loc[
+        scored_treasury_history["market_date"] == latest_treasury_ref
+    ]
+    if len(scored_treasury) != 1:
+        raise ValueError("No exactly matched Treasury score for point-in-time as-of")
+
     tech_result = technical_current(scored_technical.iloc[-1])
     treasury_result = treasury_current(scored_treasury.iloc[-1])
     # Hypothetical flat research state. Replay Risk Governor V3 from
