@@ -132,6 +132,26 @@ def component(path, role, origin, snapshot_name, snapshot_hash, *, issued, final
     observed_at = utc(data.get("available_at_utc"))
     if not finalized <= observed_at <= issued:
         raise ValueError(f"V4 {role} evidence unavailable at issuance")
+    # Generator-produced components are bound to their point-in-time
+    # market and Treasury histories, not just to the Schwab snapshot.
+    if data.get("generator") == "build_v4_daily_evidence_v1":
+        evidence = data.get("point_in_time_sources")
+        if not isinstance(evidence, dict) or set(evidence) != {"market", "treasury"}:
+            raise ValueError("Missing V4 generator source provenance")
+        input_dir = ROOT / "data/raw/v4_inputs"
+        for name in ("market", "treasury"):
+            item = evidence[name]
+            if not isinstance(item, dict):
+                raise ValueError("Malformed V4 generator source provenance")
+            filename = item.get("filename")
+            expected_sha = item.get("sha256")
+            if (not isinstance(filename, str) or
+                    not isinstance(expected_sha, str) or
+                    len(expected_sha) != 64):
+                raise ValueError("V4 generator source identity is invalid")
+            input_file = local_file(input_dir / filename, input_dir, ".csv")
+            if digest(input_file) != expected_sha:
+                raise ValueError("V4 generator source was modified")
     if role == "risk_governor_v3":
         if type(data.get("new_entries_allowed")) is not bool:
             raise ValueError("Risk governor entry permission must be boolean")
