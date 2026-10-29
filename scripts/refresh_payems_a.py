@@ -202,6 +202,11 @@ def activate(day, *, baseline_path=EVENTS, schedule_path=SCHEDULE,
     baseline = pd.read_csv(baseline_path)
     expected = create_candidate(baseline, pd.read_csv(vintage_path), event)
     candidate = pd.read_csv(candidate_path)
+    # CSV round-tripping represents empty research-only fields as NaN,
+    # while the in-memory candidate retains Python None. Normalize both
+    # before comparing all columns; do not skip any integrity fields.
+    expected = expected.where(pd.notna(expected), float("nan"))
+    candidate = candidate.where(pd.notna(candidate), float("nan"))
     pd.testing.assert_frame_equal(
         expected.reset_index(drop=True), candidate.reset_index(drop=True),
         check_dtype=False, check_exact=False, rtol=0, atol=1e-10,
