@@ -33,7 +33,7 @@ Check the baseline `data/features/PAYEMS_event_features.csv` latest row is Octob
    ```bash
    python -m scripts.refresh_payems_a --release 2026-11-06 --activate
    ```
-5. Verify `data/features/PAYEMS_event_features.refresh.json` is present, contains matching `active_sha256`, and `python -m scripts.payems_a_readiness --help` is **not** the supported entry point (it is a library validator). Use a read-only Python assertion:
+5. Verify `data/features/PAYEMS_event_features.refresh.json` is present and contains matching `active_sha256`. Use a read-only Python assertion:
    ```bash
    python -c "from scripts.payems_a_readiness import require_payems_ready; print(require_payems_ready('2026-11-06'))"
    ```
