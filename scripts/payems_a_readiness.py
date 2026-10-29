@@ -43,13 +43,15 @@ def require_payems_ready(origin, *, events_path=EVENTS,
         val = float(latest[name])
         if not __import__("math").isfinite(val):
             raise ValueError("PAYEMS-A invalid input " + name)
-    for item in schedule["events"]:
+    due = [item for item in schedule["events"] if item["release_date"] <= day]
+    if len({item["release_date"] for item in due}) != len(due):
+        raise ValueError("Duplicate PAYEMS release schedule entries")
+    if due:
+        item = max(due, key=lambda x: x["release_date"])
         release = item["release_date"]
-        if release > day:
-            continue
         if item["release_timezone"] != NY or item["release_time"] != "08:30":
             raise ValueError("Unapproved PAYEMS release schedule")
-        if latest["event_release_date"] != release:
+        if str(latest["event_release_date"]) != release:
             raise ValueError(
                 "PAYEMS_A_REFRESH_REQUIRED: scheduled release " + release +
                 " has no activated event row; do not use stale macro inputs"
