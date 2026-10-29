@@ -1,0 +1,26 @@
+{
+  "schema_version": "payems_a_approved_release_schedule_v1",
+  "purpose": "Operational PAYEMS-A source refresh only; does not change V3_FINAL model or training",
+  "official_schedule_url": "https://www.bls.gov/schedule/news_release/empsit.htm",
+  "events": [
+    {
+      "reference_month": "2026-10-01",
+      "release_date": "2026-11-06",
+      "release_time": "08:30",
+      "release_timezone": "America/New_York"
+    },
+    {
+      "reference_month": "2026-11-01",
+      "release_date": "2026-12-04",
+      "release_time": "08:30",
+      "release_timezone": "America/New_York"
+    },
+    {
+      "reference_month": "2026-12-01",
+      "release_date": "2027-01-08",
+      "release_time": "08:30",
+      "release_timezone": "America/New_York"
+    }
+  ],
+  "notice": "These are scheduled BLS dates; verify actual publication before approving activation. Update this versioned schedule if BLS revises a date."
+}
