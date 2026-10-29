@@ -9,6 +9,7 @@ import os
 import pandas_market_calendars as mcal
 
 from scripts.market_session import require_issuance_window
+from scripts.payems_a_readiness import require_payems_ready
 
 import numpy as np
 import pandas as pd
@@ -259,7 +260,10 @@ def main():
     if pd.Timestamp(forecast_date) <= reference["market_date"].max():
         raise ValueError("Forecast is not newer than frozen features")
 
+    approved_release = require_payems_ready(forecast_date)
     payroll = latest_payems(forecast_date)
+    if str(payroll["event_release_date"]) != approved_release:
+        raise ValueError("PAYEMS release changed between readiness audit and selection")
 
     feature_values = {
         name: latest[name] for name in tech_features
