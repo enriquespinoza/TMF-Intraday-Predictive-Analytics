@@ -340,3 +340,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .env
+
+# Local scheduled model-run receipts (may include sensitive operational timestamps)
+reports/automation/
