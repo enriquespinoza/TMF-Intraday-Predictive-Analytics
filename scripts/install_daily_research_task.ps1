@@ -17,6 +17,12 @@ $Action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument (
 ) -WorkingDirectory $Repo
 $Evening = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At '17:30'
 $Night = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At '20:15'
+# Keep recurring wall-clock times across DST transitions. An explicit UTC
+# offset in StartBoundary fixes the trigger to that offset (wrong after DST).
+# Offset-free boundaries instruct Task Scheduler to use local timezone/DST.
+$LocalDate = (Get-Date).ToString('yyyy-MM-dd')
+$Evening.StartBoundary = "${LocalDate}T17:30:00"
+$Night.StartBoundary = "${LocalDate}T20:15:00"
 $Principal = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
 $Settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 2)
 
