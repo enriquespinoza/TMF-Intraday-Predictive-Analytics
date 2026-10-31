@@ -3,9 +3,28 @@
 $ErrorActionPreference = 'Stop'
 $Name = 'TMF V3 TimesFM Rolling Research'
 $Task = Get-ScheduledTask -TaskName $Name -ErrorAction Stop
-$CurrentUser = [Security.Principal.WindowsIdentity]::GetCurrent().Name
-if ($Task.Principal.UserId -ne $CurrentUser) {
-    throw "Task belongs to another principal; manual review required"
+# Task Scheduler may persist UserId as a SID, COMPUTER\\user, or just
+# a local username. Compare resolved SIDs rather than display strings.
+$CurrentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$CurrentSid = $CurrentIdentity.User.Value
+$PrincipalId = [string]$Task.Principal.UserId
+if ([string]::IsNullOrWhiteSpace($PrincipalId)) {
+    throw "Task principal missing; manual review required"
+}
+try {
+    if ($PrincipalId -match '^S-1-') {
+        $PrincipalSid = (New-Object Security.Principal.SecurityIdentifier($PrincipalId)).Value
+    } else {
+        $Account = New-Object Security.Principal.NTAccount($PrincipalId)
+        $PrincipalSid = $Account.Translate([Security.Principal.SecurityIdentifier]).Value
+    }
+}
+catch {
+    throw ("Unable to resolve task principal identity; manual review required: " + $PrincipalId)
+}
+if ($PrincipalSid -ne $CurrentSid) {
+    throw ("Task belongs to another Windows principal: task=" + $PrincipalId +
+           ", current=" + $CurrentIdentity.Name + "; manual review required")
 }
 if ((Get-TimeZone).Id -ne 'Eastern Standard Time') {
     throw 'Windows timezone is not Eastern Standard Time'
