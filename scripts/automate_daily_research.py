@@ -149,6 +149,10 @@ def score_maturities(session, snapshot, analytics_python, timesfm_python, events
         if dest.exists():
             existing_score_valid(dest, forecast)
             events.append(f"V3_SCORE_ALREADY_VERIFIED:{origin}")
+        elif datetime.now(timezone.utc).date().isoformat() <= session:
+            # Frozen V3 scorer requires the calendar to advance beyond the
+            # target date in UTC. A second nightly scheduler pass handles it.
+            events.append(f"V3_SCORE_DEFERRED_UTC_CUTOFF:{origin}")
         else:
             run_child("V3 score", analytics_python,
                       "scripts.score_forward_forecast",
