@@ -205,3 +205,76 @@ def test_cli_does_not_write_without_output(configured, tmp_path, capsys):
     record, _ = m.build(root, m._json(meta))
     assert not (root / m.ARCHIVE).exists()
     assert record["order_generated"] is False
+
+@pytest.mark.parametrize("offset", ["-04:00", "-05:00"])
+def test_market_midnight_timestamp_is_reference_only(configured, offset):
+    root, cfg = configured
+    content = MARKET
+    for day in ("2026-10-26", "2026-10-27", "2026-10-28"):
+        content = content.replace(
+            f"{day},", f"{day} 00:00:00{offset},"
+        )
+
+    (root / "data/raw/market.csv").write_bytes(content.encode("utf-8"))
+    record, blobs = m.build(root, cfg)
+
+    market = record["sources"]["tmf_historical"]
+    assert market["first_reference_date"] == "2026-10-26"
+    assert market["last_reference_date"] == "2026-10-28"
+    assert blobs["tmf_historical"] == content.encode("utf-8")
+    assert record["historical_availability_attested"] is False
+    assert record["authorizes_live_v4_issuance"] is False
+
+    audit = market["nyse_session_audit"]
+    if audit["status"] == "CHECKED":
+        assert audit["missing_dates"] == []
+        assert audit["non_nyse_dates"] == []
+
+
+@pytest.mark.parametrize("bad", [
+    "2026-10-26 00:00:00",
+    "2026-10-26 09:30:00-04:00",
+    "2026-10-26 00:00:00+25:00",
+])
+def test_market_invalid_timestamp_rejected(configured, bad):
+    root, cfg = configured
+    content = MARKET.replace("2026-10-26,", f"{bad},")
+    (root / "data/raw/market.csv").write_bytes(content.encode("utf-8"))
+
+    with pytest.raises(m.BootstrapError):
+        m.build(root, cfg)
+
+
+@pytest.mark.parametrize("role,filename,original,old", [
+    ("treasury_nominal", "nominal.csv", NOMINAL, "2026-10-27,4.59"),
+    ("treasury_real_10y", "real.csv", REAL, "2026-10-27,2.00"),
+])
+@pytest.mark.parametrize("missing_token", ["", "."])
+def test_missing_treasury_yield_is_recorded_not_filled(
+    configured, role, filename, original, old, missing_token
+):
+    root, cfg = configured
+    content = original.replace(old, f"2026-10-27,{missing_token}")
+    (root / "data/raw" / filename).write_bytes(content.encode("utf-8"))
+
+    record, blobs = m.build(root, cfg)
+    source = record["sources"][role]
+
+    assert source["rows"] == 3
+    assert source["valid_yield_rows"] == 2
+    assert source["missing_yield_rows"] == 1
+    assert source["missing_yield_dates"] == ["2026-10-27"]
+    assert blobs[role] == content.encode("utf-8")
+    assert f"{role}.missing_yield_observations" in record["blockers"]
+    assert record["source_acceptance"] == "NOT_ESTABLISHED"
+    assert record["authorizes_live_v4_issuance"] is False
+
+
+@pytest.mark.parametrize("bad", ["NaN", "inf", "not_a_yield"])
+def test_invalid_treasury_yields_still_fail_closed(configured, bad):
+    root, cfg = configured
+    content = NOMINAL.replace("2026-10-27,4.59", f"2026-10-27,{bad}")
+    (root / "data/raw/nominal.csv").write_bytes(content.encode("utf-8"))
+
+    with pytest.raises(m.BootstrapError):
+        m.build(root, cfg)

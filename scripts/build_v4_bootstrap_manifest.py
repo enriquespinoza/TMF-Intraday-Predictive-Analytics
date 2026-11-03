@@ -70,6 +70,33 @@ def _iso_date(raw, label):
     return parsed
 
 
+def _market_session_date(raw, label):
+    """Parse a market reference date, not an availability timestamp."""
+    if isinstance(raw, str) and len(raw) == 10:
+        return _iso_date(raw, label)
+
+    if not isinstance(raw, str):
+        raise BootstrapError(f"Invalid market session timestamp: {label}")
+
+    try:
+        stamp = datetime.fromisoformat(raw)
+    except ValueError as exc:
+        raise BootstrapError(
+            f"Invalid market session timestamp: {label}"
+        ) from exc
+
+    if stamp.tzinfo is None or stamp.utcoffset() is None:
+        raise BootstrapError(f"{label} requires an explicit UTC offset")
+
+    if (stamp.hour, stamp.minute, stamp.second, stamp.microsecond) != (0, 0, 0, 0):
+        raise BootstrapError(f"{label} must be a midnight session tag")
+
+    if raw not in (stamp.isoformat(sep=" "), stamp.isoformat(sep="T")):
+        raise BootstrapError(f"{label} must use a canonical ISO timestamp")
+
+    return stamp.date()
+
+
 def _utc(raw, label):
     if raw is None:
         return None
@@ -135,10 +162,16 @@ def _observations(original, *, role, date_column, value_column):
     prior = None
     count = 0
     fractional_volumes = 0
+    missing_yield_dates = []
+    valid_yield_rows = 0
     for n, row in enumerate(reader, start=2):
         if None in row or any(v is None for v in row.values()):
             raise BootstrapError(f"Malformed CSV row {n}")
-        day = _iso_date(row[date_column], f"row {n} {date_column}")
+        day = (
+            _market_session_date(row[date_column], f"row {n} {date_column}")
+            if role == "tmf_historical"
+            else _iso_date(row[date_column], f"row {n} {date_column}")
+        )
         if prior is not None and day <= prior:
             raise BootstrapError(f"Dates duplicated or not increasing at row {n}")
         prior = day
@@ -153,9 +186,16 @@ def _observations(original, *, role, date_column, value_column):
                 raise BootstrapError(f"OHLC low invalid at row {n}")
             fractional_volumes += not values["volume"].is_integer()
         else:
-            _value(row[value_column], f"row {n} {value_column}")
+            raw_yield = row[value_column].strip()
+            if raw_yield in ("", "."):
+                missing_yield_dates.append(day.isoformat())
+            else:
+                _value(raw_yield, f"row {n} {value_column}")
+                valid_yield_rows += 1
     if not count:
         raise BootstrapError("Empty source CSV")
+    if role != "tmf_historical" and not valid_yield_rows:
+        raise BootstrapError("Treasury source contains no valid yield observations")
     return {
         "rows": count,
         "first_reference_date": first.isoformat(),
@@ -163,6 +203,9 @@ def _observations(original, *, role, date_column, value_column):
         "date_column": date_column,
         "value_column": value_column,
         "fractional_volume_rows": fractional_volumes if role == "tmf_historical" else None,
+        "valid_yield_rows": valid_yield_rows if role != "tmf_historical" else None,
+        "missing_yield_rows": len(missing_yield_dates) if role != "tmf_historical" else None,
+        "missing_yield_dates": missing_yield_dates if role != "tmf_historical" else None,
     }
 
 
@@ -173,7 +216,12 @@ def _missing_sessions(first, last, observed_bytes, date_column):
     except ImportError:
         return {"status": "NOT_CHECKED_CALENDAR_DEPENDENCY_UNAVAILABLE", "missing_dates": None}
     fields = csv.DictReader(io.StringIO(observed_bytes.decode("utf-8-sig"), newline=""))
-    present = {row[date_column] for row in fields}
+    present = {
+        _market_session_date(
+            row[date_column], f"NYSE {date_column}"
+        ).isoformat()
+        for row in fields
+    }
     expected = [d.date().isoformat() for d in calendars.get_calendar("NYSE").valid_days(
         start_date=first, end_date=last,
     )]
@@ -267,6 +315,9 @@ def build(root, declarations):
     if len({records[r]["sha256"] for r in ROLES}) != len(ROLES):
         raise BootstrapError("Same file bytes used for multiple distinct source roles")
     blockers = [f"{role}.{missing}" for role in ROLES for missing in records[role]["unresolved_metadata"]]
+    for role in ("treasury_nominal", "treasury_real_10y"):
+        if records[role]["missing_yield_rows"]:
+            blockers.append(f"{role}.missing_yield_observations")
     nyse = records["tmf_historical"]["nyse_session_audit"]
     if nyse["status"] != "CHECKED":
         blockers.append("market.nyse_calendar_not_checked")

@@ -63,3 +63,19 @@ Bootstrap-specific validation: 31 passed, 1 skipped.
 B1/B2: NOT_ESTABLISHED.
 B3–B5: BLOCKED.
 Prospective V4 issuance: NOT AUTHORIZED.
+
+## B1 historical inventory checkpoint — 2026-11-03
+
+- Bootstrap-specific suite: 43 passed, 1 skipped.
+- Full regression suite: 579 passed, 8 skipped, 0 failed.
+- Historical TMF sessions: 1,256.
+- Both Treasury yields available by reference date: 1,245 sessions.
+- Shared blank Treasury sessions: 9.
+- Nominal/real coverage mismatch: 2026-10-02.
+- Both Treasury source rows absent: 2026-10-05.
+- Last fully aligned reference date: 2026-10-01.
+- Original market and Treasury source bytes preserved.
+- No missing yield values imputed.
+- B1/B2 independent provenance: NOT_ESTABLISHED.
+- B3-B5: BLOCKED.
+- Prospective V4 issuance: NOT AUTHORIZED.
