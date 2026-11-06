@@ -3,8 +3,9 @@
 
 from importlib.resources import path
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -13,6 +14,9 @@ from schwab.auth import easy_client
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT / "data" / "raw" / "schwab"
+HISTORY = ROOT / "data" / "raw" / "TMF_1d.csv"
+MIN_DAILY_OVERLAP = 5
+INTRADAY_LOOKBACK_DAYS = 35
 
 
 def resolve_token_path(platform_name=None):
@@ -124,18 +128,59 @@ def normalize_candles(payload):
     ]
 
 
+def required_history_sessions(history_path=None):
+    """Read the frozen historical endpoint; reject malformed session dates."""
+    history_path = HISTORY if history_path is None else Path(history_path)
+    history = pd.read_csv(history_path, usecols=["timestamp"])
+    parsed = pd.to_datetime(history["timestamp"], utc=True, errors="raise")
+    if parsed.isna().any():
+        raise ValueError("Historical source contains null timestamps")
+
+    dates = parsed.dt.tz_convert("America/New_York").dt.date.tolist()
+    if len(dates) < MIN_DAILY_OVERLAP or dates != sorted(set(dates)):
+        raise ValueError("Historical source has insufficient or invalid sessions")
+    return tuple(dates[-MIN_DAILY_OVERLAP:])
+
+
+def request_start_times(end, historical_sessions):
+    """Keep the same daily overlap as the Schwab intraday window rolls on."""
+    if not historical_sessions or len(historical_sessions) != MIN_DAILY_OVERLAP:
+        raise ValueError("Exactly five historical reference sessions are required")
+    daily_start = datetime.combine(
+        historical_sessions[0], time.min,
+        tzinfo=ZoneInfo("America/New_York"),
+    )
+    intraday_start = end - timedelta(days=INTRADAY_LOOKBACK_DAYS)
+    return daily_start, intraday_start
+
+
+def require_daily_overlap(daily, historical_sessions):
+    """Fail before writing if Schwab omitted any frozen reference session."""
+    missing = sorted(
+        set(historical_sessions).difference(set(daily["market_date"]))
+    )
+    if missing:
+        raise ValueError(
+            "Schwab daily history missing required overlap sessions: "
+            + ", ".join(str(day) for day in missing)
+        )
+
+
 def main():
     client = create_client()
 
     end = datetime.now(timezone.utc)
-    start = end - timedelta(days=35)
+    historical_sessions = required_history_sessions()
+    daily_start, intraday_start = request_start_times(
+        end, historical_sessions
+    )
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     snapshot_id = end.strftime("%Y%m%dT%H%M%SZ")
 
-    for interval, method in [
-        ("1d", client.get_price_history_every_day),
-        ("5m", client.get_price_history_every_five_minutes),
+    for interval, method, start in [
+        ("1d", client.get_price_history_every_day, daily_start),
+        ("5m", client.get_price_history_every_five_minutes, intraday_start),
     ]:
         print(f"\nDownloading TMF {interval} history...")
 
@@ -148,6 +193,9 @@ def main():
 
         response.raise_for_status()
         df = normalize_candles(response.json())
+
+        if interval == "1d":
+            require_daily_overlap(df, historical_sessions)
 
         if interval == "5m":
             local_times = df["timestamp_utc"].dt.tz_convert(
