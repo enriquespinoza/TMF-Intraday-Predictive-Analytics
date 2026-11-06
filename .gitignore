@@ -340,3 +340,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .env
+
+# Locally generated CI evidence (hosted reports are artifacts)
+audit-output/
